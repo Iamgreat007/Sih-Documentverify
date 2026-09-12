@@ -1,0 +1,22 @@
+[
+  {
+    "file_name": "Screenshot 2026-09-12 131853.png",
+    "name": "Issued By Punjab",
+    "dl_number": "PB23 20240004974",
+    "father_or_husband_name": "Harmanpreet Singh",
+    "date_of_birth": "21/04/2005",
+    "gender": "MALE",
+    "date_of_issue": "30/10/2024",
+    "date_of_expiry": "20/04/2045",
+    "blood_group": "Unknown",
+    "vehicle_classes": [
+      "LMV"
+    ],
+    "issuing_authority": "Transport Department, Govt. of Punjab",
+    "validity_status": "ACTIVE",
+    "address": null,
+    "image_of_person": "D:\\SIH Hackathon\\driving_licence_scanner_app\\extracted_portraits/Screenshot 2026-09-12 131853_driver_photo.jpg",
+    "image_of_person_url": "/extracted_portraits/Screenshot 2026-09-12 131853_driver_photo.jpg",
+    "uploaded_image_url": "/uploads/Screenshot 2026-09-12 131853.png"
+  }
+]
