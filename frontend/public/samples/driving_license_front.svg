@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <linearGradient id="dlFrontBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eff6ff"/>
+      <stop offset="50%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0fdf4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Card Body -->
+  <rect x="10" y="10" width="780" height="480" rx="16" fill="url(#dlFrontBg)" stroke="#3b82f6" stroke-width="2"/>
+
+  <!-- Top Blue Header -->
+  <rect x="10" y="10" width="780" height="65" rx="16 16 0 0" fill="#1e3a8a"/>
+  <text x="400" y="38" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="3">INDIAN UNION DRIVING LICENCE</text>
+  <text x="400" y="58" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#93c5fd" text-anchor="middle" letter-spacing="2">TRANSPORT DEPARTMENT, GOVT. OF NCT OF DELHI</text>
+
+  <!-- Left: Photo & Smart Chip -->
+  <g transform="translate(40, 95)">
+    <!-- Photo Box -->
+    <rect x="0" y="0" width="160" height="200" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="80" cy="75" r="40" fill="#64748b"/>
+    <path d="M20 180 C20 130, 140 130, 140 180 Z" fill="#475569"/>
+    <text x="80" y="192" font-family="Arial" font-size="8" font-weight="bold" fill="#64748b" text-anchor="middle">LICENCE HOLDER</text>
+
+    <!-- Smart Chip (Gold SIM style) -->
+    <rect x="35" y="220" width="90" height="70" rx="6" fill="#f59e0b" stroke="#d97706" stroke-width="1.5"/>
+    <rect x="45" y="232" width="70" height="45" fill="none" stroke="#b45309" stroke-width="1.5"/>
+    <line x1="80" y1="220" x2="80" y2="290" stroke="#b45309" stroke-width="1.5"/>
+    <text x="80" y="306" font-family="Arial" font-size="8" font-weight="bold" fill="#92400e" text-anchor="middle">SMART CARD CHIP</text>
+  </g>
+
+  <!-- Center & Right: DL Details Grid -->
+  <g transform="translate(230, 90)">
+    <!-- DL Number -->
+    <text x="0" y="16" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1e40af">DRIVING LICENCE NO.</text>
+    <text x="0" y="42" font-family="Courier New, monospace" font-size="22" font-weight="black" fill="#b91c1c" letter-spacing="2">
+      DL-0420110012345
+    </text>
+
+    <!-- Name & Relation -->
+    <text x="0" y="76" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">NAME</text>
+    <text x="0" y="96" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#0f172a">RAHUL SHARMA</text>
+
+    <text x="280" y="76" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">S/W/D OF</text>
+    <text x="280" y="96" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#0f172a">RAMESH SHARMA</text>
+
+    <!-- DOB & Blood Group -->
+    <text x="0" y="132" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">DATE OF BIRTH</text>
+    <text x="0" y="152" font-family="Courier New, monospace" font-size="15" font-weight="bold" fill="#0f172a">14/03/2003</text>
+
+    <text x="280" y="132" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">BLOOD GROUP</text>
+    <text x="280" y="152" font-family="Arial, sans-serif" font-size="15" font-weight="black" fill="#dc2626">O+ (POSITIVE)</text>
+
+    <!-- Issue Date & Validity -->
+    <text x="0" y="188" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">DATE OF ISSUE</text>
+    <text x="0" y="208" font-family="Courier New, monospace" font-size="14" font-weight="bold" fill="#0f172a">15/04/2021</text>
+
+    <text x="280" y="188" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">VALIDITY (NT)</text>
+    <text x="280" y="208" font-family="Courier New, monospace" font-size="15" font-weight="black" fill="#059669">13/03/2043</text>
+
+    <!-- Authorized Class of Vehicles -->
+    <text x="0" y="246" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#64748b">CLASS OF VEHICLE (COV)</text>
+    <rect x="0" y="254" width="500" height="38" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="15" y="278" font-family="Courier New, monospace" font-size="15" font-weight="bold" fill="#0f172a">
+      MCWG (Two-Wheeler), LMV (Light Motor Vehicle)
+    </text>
+  </g>
+
+  <!-- Bottom Hologram & Security Banner -->
+  <rect x="10" y="440" width="780" height="50" rx="0 0 16 16" fill="#1e3a8a"/>
+  <text x="400" y="470" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="2">
+    FORM 7 (RULE 16(2)) • SARATHI TRANSPORT VERIFIED
+  </text>
+</svg>
