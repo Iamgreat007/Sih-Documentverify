@@ -1,0 +1,246 @@
+[
+  {
+    "file_name": "Screenshot 2026-09-12 131742.png",
+    "name": "NITIN WAMANRAO THAKRE",
+    "passport_no": "N7935704",
+    "date_of_birth": "15/06/1978",
+    "gender": "M",
+    "date_of_issue": "27/04/2016",
+    "date_of_expiry": "26/04/2026",
+    "place_of_birth": "NAGPUR MAHARASHTRA",
+    "place_of_issue": "OIRTTTTN PIACE OIVC NAGPUR",
+    "address": "NAGPUR MAHARASHTRA",
+    "mrz_code": [
+      "P<INDTHAKRE<<NITIN<WAMANRAO<<<<<<<<<<<<<<<<<",
+      "N7935704<6IND7806153M2604262<<<<<<<<<<<<<<<2"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/Screenshot 2026-09-12 131742_person.jpg",
+    "image_of_person_url": "/extracted_portraits/Screenshot 2026-09-12 131742_person.jpg",
+    "uploaded_image_url": "/uploads/Screenshot 2026-09-12 131742.png"
+  },
+  {
+    "file_name": "Screenshot 2026-09-11 233015.png",
+    "name": "NANDLAL JANARILAL INDGADIYA",
+    "passport_no": null,
+    "date_of_birth": "",
+    "gender": "M",
+    "date_of_issue": "16/10/2015",
+    "date_of_expiry": "15/10/2025",
+    "place_of_birth": "URWADA JALGAON MAHARASHTRA",
+    "place_of_issue": "THANE",
+    "address": "URWADA JALGAON MAHARASHTRA",
+    "mrz_code": [
+      "<INDGADIYA<<NANDLAL<JANARILAL<<<<<<<<<KK<<<",
+      "N4700275<6IND6406297012510158<<<<<<<44444<<<8"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/Screenshot 2026-09-11 233015_person.jpg",
+    "image_of_person_url": "/extracted_portraits/Screenshot 2026-09-11 233015_person.jpg",
+    "uploaded_image_url": "/uploads/Screenshot 2026-09-11 233015.png"
+  },
+  {
+    "file_name": "test.png",
+    "name": "SHARAD KARBHARI SONAWANE",
+    "passport_no": "S4482155",
+    "date_of_birth": "02/06/1971",
+    "gender": "M",
+    "date_of_issue": "29/06/2018",
+    "date_of_expiry": "28/06/2028",
+    "place_of_birth": "SONGIRI NASHIK, MAHARASHTRA",
+    "place_of_issue": "MUMBAI",
+    "address": "SONGIRI NASHIK, MAHARASHTRA",
+    "mrz_code": [
+      "P<INDSONAWANE<<SHARAD<KARBHARI<<<<<<<<<<<<<<",
+      "S4482155<5IND7106026M2806284<<<<<<<<<<<<<4<8"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/test_person.jpg",
+    "image_of_person_url": "/extracted_portraits/test_person.jpg",
+    "uploaded_image_url": "/uploads/test.png"
+  },
+  {
+    "file_name": "test.png",
+    "name": "SHARAD KARBHARI SONAWANE",
+    "passport_no": "S4482155",
+    "date_of_birth": "02/06/1971",
+    "gender": "M",
+    "date_of_issue": "29/06/2018",
+    "date_of_expiry": "28/06/2028",
+    "place_of_birth": "MFAPACE ONBIRTN SONGIRI NASHIK, MAHARASHTRA 1 PIACE 07",
+    "place_of_issue": "MUMBAI",
+    "address": "MFAPACE ONBIRTN SONGIRI NASHIK, MAHARASHTRA 1 PIACE 07",
+    "mrz_code": [
+      "P<INDSONAWANE<<SHARAD<KARBHARI<<<<<<<<<<<<<<",
+      "S4482155<5IND7106026M2806284<<<<<<<<<<<<<4<8"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/test_person.jpg",
+    "image_of_person_url": "/extracted_portraits/test_person.jpg",
+    "uploaded_image_url": "/uploads/test.png"
+  },
+  {
+    "file_name": "Screenshot 2026-09-11 230804.png",
+    "name": "FAHMEEDA BEGUM AEFT HUATEN AANTN",
+    "passport_no": "V3771735",
+    "date_of_birth": "10/03/1981",
+    "gender": "F",
+    "date_of_issue": "05/10/2021",
+    "date_of_expiry": "24/10/2031",
+    "place_of_birth": "HTDERABAV, ELANUANA NT",
+    "place_of_issue": "HT DERABAD F41R6 DALA UDT",
+    "address": "HTDERABAV, ELANUANA NT",
+    "mrz_code": [
+      "P<IND<<FAHMEEDA<BEGUM<<<<<<<<<<<<<<<<<<<<<4<",
+      "V3771735<8IND8103103F31102453063654246521<52"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/Screenshot 2026-09-11 230804_person.jpg",
+    "image_of_person_url": "/extracted_portraits/Screenshot 2026-09-11 230804_person.jpg",
+    "uploaded_image_url": "/uploads/Screenshot 2026-09-11 230804.png"
+  },
+  {
+    "file_name": "Screenshot 2026-09-11 225514.png",
+    "name": "ANAHITA SARABHAI",
+    "passport_no": "43139285",
+    "date_of_birth": "26/05/1990",
+    "gender": "F",
+    "date_of_issue": "24/03/2009",
+    "date_of_expiry": "23/03/2019",
+    "place_of_birth": "AHREDABAD",
+    "place_of_issue": "AHNEDABAD",
+    "address": "AHREDABAD",
+    "mrz_code": [
+      "P<INDSARABHAI<<ANAHITA<<<<<<<<<<<<<<<<<<",
+      "03139285<0IND9005260F1903234<<<44<<<<<<<<<<0"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/Screenshot 2026-09-11 225514_person.jpg",
+    "image_of_person_url": "/extracted_portraits/Screenshot 2026-09-11 225514_person.jpg",
+    "uploaded_image_url": "/uploads/Screenshot 2026-09-11 225514.png"
+  },
+  {
+    "file_name": "test.png",
+    "name": "SHARAD KARBHARI SONAWANE",
+    "passport_no": "S4482155",
+    "date_of_birth": "02/06/1971",
+    "gender": "M",
+    "date_of_issue": "29/06/2018",
+    "date_of_expiry": "28/06/2028",
+    "place_of_birth": "SONGIRI NASHIK, MAHARASHTRA",
+    "place_of_issue": "MUMBAI",
+    "address": "SONGIRI NASHIK, MAHARASHTRA",
+    "mrz_code": [
+      "P<INDSONAWANE<<SHARAD<KARBHARI<<<<<<<<<<<<<<",
+      "54482155<5IND7106026M2806284<<<<<<<<<<<<<<<8"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/test_person.jpg",
+    "image_of_person_url": "/extracted_portraits/test_person.jpg",
+    "uploaded_image_url": "/uploads/test.png"
+  },
+  {
+    "file_name": "Screenshot 2026-09-11 225514.png",
+    "name": "ANAHITA SARAAHAI",
+    "passport_no": "43139285",
+    "date_of_birth": "26/05/1990",
+    "gender": "F",
+    "date_of_issue": "24/03/2009",
+    "date_of_expiry": "23/03/2019",
+    "place_of_birth": null,
+    "place_of_issue": null,
+    "address": null,
+    "mrz_code": [
+      "P<INDSARAAHAI<<ANAHITA<<<<<<<<<<<<<<<<<<<<<<",
+      "03139285<0IND9005260F1903234<<<<<<<<<<<<<<<0"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/Screenshot 2026-09-11 225514_person.jpg",
+    "image_of_person_url": "/extracted_portraits/Screenshot 2026-09-11 225514_person.jpg",
+    "uploaded_image_url": "/uploads/Screenshot 2026-09-11 225514.png"
+  },
+  {
+    "file_name": "user_passport_test.png",
+    "name": "SHARAD KARBHARI SONAWANE",
+    "passport_no": "S4482155",
+    "date_of_birth": "02/06/1971",
+    "gender": "M",
+    "date_of_issue": "29/06/2018",
+    "date_of_expiry": "28/06/2028",
+    "place_of_birth": "SONGIRI NASHIK, MAHARASHTRA",
+    "place_of_issue": "MUMBAI",
+    "address": "SONGIRI NASHIK, MAHARASHTRA",
+    "mrz_code": [
+      "P<INDSONAWANE<<SHARAD<KARBHARI<<<<<<<<<<<<<<",
+      "84482155<5IND7106026M2806284<<<<<<<<<<<<<<<8"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/user_passport_test_person.jpg",
+    "image_of_person_url": "/extracted_portraits/user_passport_test_person.jpg",
+    "uploaded_image_url": "/uploads/user_passport_test.png"
+  },
+  {
+    "file_name": "user_passport_test.png",
+    "name": "SHARAD KARBHARI SonAWAnE",
+    "passport_no": "54482155",
+    "date_of_birth": "02/06/1971",
+    "gender": "M",
+    "date_of_issue": "29/06/2018",
+    "date_of_expiry": "28/06/2028",
+    "place_of_birth": "SONGIRI NASHIK, MahARASHTRA",
+    "place_of_issue": "MUMBAI",
+    "address": "SONGIRI NASHIK, MahARASHTRA",
+    "mrz_code": [
+      "P<INDSONAWANE<<SHARAD<KARBHARI<<<<<<<<<<<<<<",
+      "84482155<5IND7106026M2806284<<<<<<<<<<<<<<<8"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/user_passport_test_person.jpg",
+    "image_of_person_url": "/extracted_portraits/user_passport_test_person.jpg",
+    "uploaded_image_url": "/uploads/user_passport_test.png"
+  },
+  {
+    "file_name": "user_passport.png",
+    "name": "SHARAD KARBHARI SONAWANE",
+    "passport_no": null,
+    "date_of_birth": "02/06/1971",
+    "gender": "M",
+    "date_of_issue": null,
+    "date_of_expiry": "28/06/2028",
+    "place_of_birth": null,
+    "address": null,
+    "mrz_code": [
+      "P<INDSONAWANE<<SHARAD<KARBHARI<<<<<<<<<<<<<<",
+      "54482155<5IND7106026M2806284<<<<<<<<<<<<<<<8"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/user_passport_person.jpg",
+    "image_of_person_url": "/extracted_portraits/user_passport_person.jpg",
+    "uploaded_image_url": "/uploads/user_passport.png"
+  },
+  {
+    "file_name": "Screenshot 2026-09-11 223821.png",
+    "name": "SHARAD KARBHARI SONAWANE",
+    "passport_no": null,
+    "date_of_birth": "02/06/1971",
+    "gender": "M",
+    "date_of_issue": null,
+    "date_of_expiry": "28/06/2028",
+    "place_of_birth": null,
+    "address": null,
+    "mrz_code": [
+      "P<INDSONAWANE<<SHARAD<KARBHARI<<<<<<<<<<<<<<",
+      "54482155<5IND7106026M2806284<<<<<<<<<<<<<<<8"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/Screenshot 2026-09-11 223821_person.jpg",
+    "image_of_person_url": "/extracted_portraits/Screenshot 2026-09-11 223821_person.jpg",
+    "uploaded_image_url": "/uploads/Screenshot 2026-09-11 223821.png"
+  },
+  {
+    "file_name": "92_passport.jpg",
+    "name": "SAMAD MANDAL",
+    "passport_no": "P5924623",
+    "date_of_birth": "02/02/1985",
+    "gender": "M",
+    "date_of_issue": null,
+    "date_of_expiry": "17/11/2026",
+    "place_of_birth": null,
+    "address": null,
+    "mrz_code": [
+      "P<INDMANDAL<<SAMAD<<<<<<<<<<<<<<<<<<<<<<<<<<",
+      "P5924623<4IND8502027M2611170<<<<<<<<<<<<<<<8"
+    ],
+    "image_of_person": "D:\\SIH Hackathon\\passport_scanner_app\\extracted_portraits/92_passport_person.jpg",
+    "image_of_person_url": "/extracted_portraits/92_passport_person.jpg",
+    "uploaded_image_url": "/uploads/92_passport.jpg"
+  }
+]

@@ -78,6 +78,13 @@ models/
 # Datasets & Outputs
 data/
 datasets/
+*.coco/
+*.coco copy/
+CODE/
+extracted_aadhaar_photos/
+extracted_dl_photos/
+extracted_photos/
+skipped_photos/
 runs/
 logs/
 *.log

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Passport & MRZ Screening Scanner | SIH26188</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-badge"><i class="fa-solid fa-passport"></i></div>
+                <div>
+                    <h1>AI Passport Screening System</h1>
+                    <p class="subtitle">SIH 26188 • DeepSeek OCR & MRZ Field Extractor</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="exportJsonBtn" class="btn btn-secondary"><i class="fa-solid fa-download"></i> Export All JSON</button>
+                <button id="clearHistoryBtn" class="btn btn-danger-outline"><i class="fa-solid fa-trash-can"></i> Clear</button>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="main-content">
+            <!-- Left: Input Controls -->
+            <section class="scanner-section">
+                <!-- Mode Switcher Tabs -->
+                <div class="tab-controls">
+                    <button id="tabUpload" class="tab-btn active"><i class="fa-solid fa-cloud-arrow-up"></i> Manual Upload</button>
+                    <button id="tabCamera" class="tab-btn"><i class="fa-solid fa-camera"></i> Live Camera</button>
+                </div>
+
+                <!-- Tab 1: Upload Area -->
+                <div id="uploadPanel" class="tab-panel active">
+                    <div id="dropZone" class="drop-zone">
+                        <i class="fa-solid fa-id-card drop-icon"></i>
+                        <h3>Drag & Drop Passport Photos</h3>
+                        <p>Upload one or multiple JPG/PNG images</p>
+                        <label for="fileInput" class="btn btn-primary browse-btn">
+                            <i class="fa-solid fa-folder-open"></i> Browse Files
+                        </label>
+                        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Camera Area -->
+                <div id="cameraPanel" class="tab-panel">
+                    <div class="camera-wrapper">
+                        <video id="videoFeed" autoplay playsinline></video>
+                        <canvas id="cameraCanvas" hidden></canvas>
+                        <div class="camera-overlay-guide">
+                            <div class="guide-box">
+                                <span class="guide-label">Align Passport Here</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="camera-controls">
+                        <button id="startCameraBtn" class="btn btn-secondary"><i class="fa-solid fa-power-off"></i> Start Camera</button>
+                        <button id="captureBtn" class="btn btn-primary" disabled><i class="fa-solid fa-camera-retro"></i> Capture & Scan</button>
+                    </div>
+                </div>
+
+                <!-- Processing Loader -->
+                <div id="loader" class="loader-container" hidden>
+                    <div class="spinner"></div>
+                    <p id="loaderText">Running OCR & MRZ Extraction...</p>
+                </div>
+
+                <!-- Session History Carousel / List -->
+                <div class="history-panel">
+                    <div class="panel-header">
+                        <h4><i class="fa-solid fa-clock-rotate-left"></i> Scanned Passports (<span id="scannedCount">0</span>)</h4>
+                    </div>
+                    <div id="historyList" class="history-list">
+                        <div class="empty-history">No passports scanned yet. Upload or capture an image to begin.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Live Extraction Dashboard -->
+            <section class="results-section">
+                <div id="resultsCard" class="results-card">
+                    <div class="result-header">
+                        <div class="status-indicator">
+                            <span class="status-dot"></span>
+                            <h3 id="resultFileName">Document Verification</h3>
+                        </div>
+                        <button id="copyJsonBtn" class="btn btn-sm btn-secondary"><i class="fa-regular fa-copy"></i> Copy JSON</button>
+                    </div>
+
+                    <!-- Visual Summary: Portrait + Key Badges -->
+                    <div class="id-card-preview">
+                        <div class="portrait-container">
+                            <img id="portraitImg" src="https://via.placeholder.com/150x180/1a2236/4facfe?text=Portrait" alt="Cropped Portrait">
+                            <span class="portrait-tag"><i class="fa-solid fa-user-check"></i> Extracted Photo</span>
+                        </div>
+                        <div class="id-primary-info">
+                            <div class="primary-row">
+                                <span class="label">FULL NAME</span>
+                                <h2 id="dispName">---</h2>
+                            </div>
+                            <div class="primary-grid">
+                                <div>
+                                    <span class="label">PASSPORT NO</span>
+                                    <p id="dispPassportNo" class="highlight-code">---</p>
+                                </div>
+                                <div>
+                                    <span class="label">NATIONALITY / GENDER</span>
+                                    <p><span id="dispNationality">IND</span> / <span id="dispGender">---</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Grid -->
+                    <div class="fields-grid">
+                        <div class="field-item">
+                            <span class="field-label"><i class="fa-regular fa-calendar"></i> Date of Birth</span>
+                            <span id="dispDob" class="field-value">---</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label"><i class="fa-solid fa-calendar-check"></i> Date of Issue</span>
+                            <span id="dispDoi" class="field-value">---</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label"><i class="fa-solid fa-calendar-xmark"></i> Date of Expiry</span>
+                            <span id="dispDoe" class="field-value">---</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label"><i class="fa-solid fa-location-dot"></i> Place of Birth</span>
+                            <span id="dispPob" class="field-value">---</span>
+                        </div>
+                        <div class="field-item">
+                            <span class="field-label"><i class="fa-solid fa-building-flag"></i> Place of Issue</span>
+                            <span id="dispPoi" class="field-value">---</span>
+                        </div>
+                        <div class="field-item full-width">
+                            <span class="field-label"><i class="fa-solid fa-map-pin"></i> Permanent Address / Location</span>
+                            <span id="dispAddress" class="field-value">---</span>
+                        </div>
+                    </div>
+
+                    <!-- MRZ Section -->
+                    <div class="mrz-box">
+                        <div class="mrz-header">
+                            <span><i class="fa-solid fa-barcode"></i> Machine Readable Zone (MRZ - ICAO 9303)</span>
+                            <span id="mrzBadge" class="badge badge-success"><i class="fa-solid fa-check"></i> Valid Checksum</span>
+                        </div>
+                        <div id="mrzCodeContainer" class="mrz-code">
+                            <div id="mrzLine1">P&lt;IND...</div>
+                            <div id="mrzLine2">...</div>
+                        </div>
+                    </div>
+
+                    <!-- Raw JSON Viewer Accordion -->
+                    <div class="json-viewer-box">
+                        <div class="json-header" id="toggleJson">
+                            <span><i class="fa-solid fa-code"></i> Structured JSON Output</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <pre id="jsonOutput" class="json-pre">{}</pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

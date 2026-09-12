@@ -1,0 +1,178 @@
+================================================================================
+SIH 2026 - PROBLEM STATEMENT SIH26188: COMPREHENSIVE ROADMAP & NEXT STEPS
+================================================================================
+
+PROBLEM STATEMENT OVERVIEW:
+--------------------------------------------------------------------------------
+- Problem Statement ID : SIH26188
+- Title                : AI-Based Fake Identity & Document Screening System
+- Organization         : Ministry of Home Affairs (MHA) / SSB / Police
+- Category             : Software
+- Domain/Theme         : AI / Cybersecurity & Blockchain / Defense & Security
+- Target Deployment    : Border Checkpoints, Airports, Immigration Desks,
+                         Law Enforcement Identity Verification
+
+KEY PROBLEM CHALLENGES TO SOLVE:
+--------------------------------------------------------------------------------
+1. Fake Passports, Visas, and National ID Cards.
+2. Altered Information (modified Date of Birth, altered document numbers/names).
+3. Altered / Swapped / Morphed Photographs (Identity impersonation).
+4. Tampered Visa Stamps and Holographic Seals.
+5. Multi-Identity Fraud (same individual carrying documents with different identities).
+6. Expired / Blacklisted Travel Document Detection.
+7. High-throughput automated screening (<2-3s per passenger) to prevent checkpoint bottlenecks.
+
+================================================================================
+CURRENT WORKSPACE STATUS (WHAT HAS BEEN DONE):
+================================================================================
+[x] Cloned GitHub repository (https://github.com/Arkavatar/Sih-Documentverify.git).
+[x] Configured production-grade .gitignore (excluding weights, .venv, cache, secrets).
+[x] Initialized Python virtual environment (.venv).
+[x] Installed deep learning and vision dependencies:
+    - PyTorch & TorchVision
+    - HuggingFace Transformers
+    - Accelerate
+    - Pillow (PIL)
+[x] Successfully verified environment and pushed initial commit to GitHub origin/main.
+
+================================================================================
+WHAT SHOULD BE DONE NEXT (STEP-BY-STEP IMPLEMENTATION ROADMAP):
+================================================================================
+
+PHASE 1: PROJECT ARCHITECTURE & REPOSITORY STRUCTURE
+--------------------------------------------------------------------------------
+Organize the codebase into modular, production-ready micro-services / packages:
+
+sih-documentverify/
+├── .venv/                         # Virtual environment
+├── api/                           # Backend API layer (FastAPI)
+│   ├── main.py                    # Server entrypoint & routing
+│   ├── routes/
+│   │   ├── verify.py              # Document screening endpoint
+│   │   ├── face_match.py          # 1:1 and 1:N face verification endpoint
+│   │   └── blacklist.py           # Watchlist / blacklist search endpoint
+├── core/                          # Core AI / ML engines
+│   ├── ocr/                       # DeepSeek OCR & Vision Language Model module
+│   │   ├── extractor.py           # Text & layout extraction from documents
+│   │   └── parser.py              # Structured field extraction (Name, DOB, Expiry)
+│   ├── mrz/                       # Machine Readable Zone (MRZ) engine
+│   │   ├── decoder.py             # ICAO 9303 MRZ scanner & parser
+│   │   └── validator.py           # Checksum verification & VIZ cross-validation
+│   ├── forensic/                  # Image forgery & tamper detection
+│   │   ├── ela.py                 # Error Level Analysis (ELA) for image splicing
+│   │   ├── font_anomaly.py        # Character alignment & font inconsistency detector
+│   │   ├── stamp_verifier.py      # Visa stamp & seal authenticity checker
+│   │   └── heatmap_generator.py   # Tampered region visual heatmap overlays
+│   ├── biometric/                 # Facial analysis & anti-spoofing
+│   │   ├── detector.py            # Crop portrait photo from ID/passport
+│   │   ├── matcher.py             # 1:1 facial similarity (document vs live camera)
+│   │   ├── liveness.py            # Anti-spoofing (blink/depth/texture check)
+│   │   └── multi_identity.py      # 1:N vector search (FAISS/ChromaDB) for aliases
+│   └── audit/                     # Cryptographic & Blockchain audit trail
+│       └── ledger.py              # SHA-256 hash logging for tamper-proof records
+├── data/
+│   ├── samples/                   # Sample test documents (passports, visas, IDs)
+│   │   ├── genuine/
+│   │   └── forged/                # Altered DOB, swapped photo, fake stamp, etc.
+│   └── blacklist/                 # Mock database of stolen/blacklisted passports
+├── web_ui/                        # Modern Officer Screening Dashboard (React / HTML5)
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
+├── tests/                         # Unit tests for OCR, MRZ, and Forensics
+├── requirements.txt               # Pinned dependencies
+├── README.md                      # Documentation & architecture diagrams
+└── .gitignore
+
+
+PHASE 2: OCR & MRZ PARSER IMPLEMENTATION (IMMEDIATE NEXT STEP)
+--------------------------------------------------------------------------------
+1. Implement MRZ (Machine Readable Zone) Decoder:
+   - Implement ICAO Doc 9303 standard for passports (Type 3) and ID cards (Type 1).
+   - Compute and validate mathematical check digits (document number check digit,
+     DOB check digit, expiration check digit, composite check digit).
+   - If check digit fails -> instantly flag document as mathematically forged.
+
+2. Implement DeepSeek OCR / Vision Model for Visual Inspection Zone (VIZ):
+   - Extract raw text, dates, names, nationality, and document numbers.
+   - Cross-Validate: Compare OCR text from VIZ against decoded MRZ fields.
+     Any discrepancy (e.g. DOB on front does not match MRZ DOB) triggers a High-Risk Alert.
+
+
+PHASE 3: DOCUMENT FORENSIC & TAMPER DETECTION ENGINE
+--------------------------------------------------------------------------------
+1. Error Level Analysis (ELA):
+   - Detect compression artifacts and differences in JPEG compression rates
+     caused by photoshopped text or spliced faces.
+2. Font & Character Inconsistency Analysis:
+   - Identify uneven font baselines, mismatched font weights, or irregular
+     kerning in critical fields (DOB, Expiry, Passport No).
+3. Stamp & Hologram Verification:
+   - Feature matching (SIFT/ORB or Vision Transformer) to verify visa stamps
+     against genuine ministry stamp templates.
+4. Tamper Heatmap Generation:
+   - Produce a visual heatmap highlighting suspicious regions on the document image
+     for immigration officers to inspect in seconds.
+
+
+PHASE 4: BIOMETRIC FACIAL VERIFICATION & ANTI-SPOOFING
+--------------------------------------------------------------------------------
+1. Portrait Extraction:
+   - Automatically crop and normalize the portrait photo from the scanned document.
+2. 1:1 Live Face Match:
+   - Extract face embeddings (via FaceNet / InsightFace / ResNet) and compare with
+     the live camera feed of the passenger.
+3. Liveness / Anti-Spoofing:
+   - Detect presentation attacks (e.g. holding a printed photo or smartphone screen).
+4. 1:N Multi-Identity Search (Preventing Impersonation):
+   - Query incoming face embeddings against a local vector database (FAISS/ChromaDB)
+     to detect if the same person has previously traveled under a different name/passport.
+
+
+PHASE 5: BACKEND API & MOCK BLACKLIST INTEGRATION
+--------------------------------------------------------------------------------
+1. Build FastAPI backend with endpoints:
+   - POST /api/scan-document        : Uploads document image, runs OCR + MRZ + Forensics.
+   - POST /api/verify-passenger     : Matches document photo against live webcam frame.
+   - POST /api/check-blacklist      : Checks document ID against blacklisted / stolen database.
+   - GET  /api/audit-report/{id}    : Generates downloadable forensic PDF / JSON report.
+2. Implement Cryptographic Audit Logger:
+   - Hash every verification event (SHA-256) into a tamper-proof sequential ledger.
+
+
+PHASE 6: IMMIGRATION OFFICER DASHBOARD (UI)
+--------------------------------------------------------------------------------
+1. Create a modern, high-speed checkpoint web application:
+   - Dual Input: Document scanner feed / upload + Live passenger webcam stream.
+   - Instant Status Card:
+     * OVERALL VERDICT: VERIFIED (Green) / SUSPICIOUS (Yellow) / FORGED (Red)
+     * Authenticity Score (0 - 100%)
+     * Checksum Verification Status (MRZ Valid / Invalid)
+     * Field Discrepancies List (e.g. "MRZ DOB 1994 != Visual DOB 1999")
+     * Visual Tamper Heatmap Overlay
+     * Facial Match Confidence (e.g. "98.4% Match")
+     * Blacklist Status (Clear / Flagged)
+   - One-click "Generate Evidence Report" for border security enforcement.
+
+
+PHASE 7: DATASET PREPARATION & JUDGING DEMO KIT
+--------------------------------------------------------------------------------
+1. Curate a rich demonstration dataset:
+   - 5 Genuine passport / visa / ID samples.
+   - 5 Forged samples simulating real-world border fraud:
+     * Sample A: Altered Date of Birth (MRZ check digit mismatch).
+     * Sample B: Spliced portrait photo (ELA anomaly detected).
+     * Sample C: Fake / tampered visa stamp.
+     * Sample D: Blacklisted document number.
+     * Sample E: Live passenger impersonation attempt (different person).
+2. Prepare presentation slides, architecture flowcharts, and live demo script.
+
+================================================================================
+RECOMMENDED IMMEDIATE NEXT ACTION:
+================================================================================
+Begin Phase 1 and Phase 2:
+1. Create the repository directory structure (`core/`, `api/`, `web_ui/`, `data/`).
+2. Implement `core/mrz/decoder.py` and `core/mrz/validator.py` with ICAO 9303
+   checksum verification.
+3. Implement `core/ocr/extractor.py` using PyTorch / Transformers / Pillow.
+================================================================================
