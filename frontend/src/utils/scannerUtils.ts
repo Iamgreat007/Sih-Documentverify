@@ -1,12 +1,19 @@
 /**
- * Scanner utility functions that support Web-CamScanner backend
- * with a high-fidelity client-side HTML5 Canvas fallback.
+ * scannerUtils.ts
+ * 
+ * Scanner utility functions integrating advanced OpenCV / Homography
+ * perspective deskewing and CamScanner-grade enhancement filters.
  */
 
-export interface Point {
-  x: number;
-  y: number;
-}
+import {
+  Point,
+  ScanFilter,
+  detectDocumentCorners,
+  warpPerspectiveDocument,
+  orderPoints,
+} from './opencvScanner';
+
+export type { Point, ScanFilter };
 
 export interface CornerDetectionResult {
   corners: Point[];
@@ -16,19 +23,33 @@ export interface CornerDetectionResult {
 }
 
 /**
- * Detect corners using backend /detect-corners if online,
- * or fast client-side contour estimate fallback.
+ * Loads an image from a data URL, object URL, or image path
+ */
+function loadImageElement(imageSrc: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(e);
+    img.src = imageSrc;
+  });
+}
+
+/**
+ * Detects document corners using OpenCV contour detection / adaptive contrast profiling,
+ * with backend /detect-corners compatibility if available.
  */
 export async function detectCornersWithFallback(
   imageSrc: string
 ): Promise<CornerDetectionResult> {
+  // 1. Try backend /detect-corners if online with quick timeout
   try {
     const rawBlob = await fetch(imageSrc).then((r) => r.blob());
     const formData = new FormData();
     formData.append('file', rawBlob);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const timeoutId = setTimeout(() => controller.abort(), 600);
 
     const res = await fetch('http://localhost:8000/detect-corners', {
       method: 'POST',
@@ -42,65 +63,55 @@ export async function detectCornersWithFallback(
       if (data && data.corners && data.corners.length === 4) {
         return {
           corners: data.corners,
-          confidence: data.confidence || 0.85,
+          confidence: data.confidence || 0.94,
           imageWidth: data.image_width || 640,
           imageHeight: data.image_height || 480,
         };
       }
     }
   } catch {
-    // Backend offline; use client-side estimate
+    // Backend offline; continue to client-side OpenCV / Canvas engine
   }
 
-  // Client-side fallback: document frame coordinates with typical margin
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const w = img.naturalWidth || 640;
-      const h = img.naturalHeight || 480;
-      const padX = w * 0.08;
-      const padY = h * 0.08;
+  // 2. In-browser client-side OpenCV & Canvas edge detection
+  try {
+    const img = await loadImageElement(imageSrc);
+    const detection = await detectDocumentCorners(img);
 
-      resolve({
-        corners: [
-          { x: padX, y: padY }, // Top-Left
-          { x: w - padX, y: padY }, // Top-Right
-          { x: w - padX, y: h - padY }, // Bottom-Right
-          { x: padX, y: h - padY }, // Bottom-Left
-        ],
-        confidence: 0.88,
-        imageWidth: w,
-        imageHeight: h,
-      });
+    return {
+      corners: detection.corners,
+      confidence: detection.confidence,
+      imageWidth: detection.width,
+      imageHeight: detection.height,
     };
-    img.onerror = () => {
-      resolve({
-        corners: [
-          { x: 40, y: 40 },
-          { x: 600, y: 40 },
-          { x: 600, y: 440 },
-          { x: 40, y: 440 },
-        ],
-        confidence: 0.85,
-        imageWidth: 640,
-        imageHeight: 480,
-      });
+  } catch (err) {
+    console.warn('Fallback corner estimation due to image load error:', err);
+    return {
+      corners: [
+        { x: 40, y: 40 },
+        { x: 600, y: 40 },
+        { x: 600, y: 440 },
+        { x: 40, y: 440 },
+      ],
+      confidence: 0.85,
+      imageWidth: 640,
+      imageHeight: 480,
     };
-    img.src = imageSrc;
-  });
+  }
 }
 
 /**
- * Process document scan using backend /scan-pro,
- * or client-side Canvas perspective transform fallback.
+ * Processes document scan using 4-point perspective warp and CamScanner enhancement filters.
+ * Replaces axis-aligned cropping with real projective homography deskewing.
  */
 export async function processScanWithFallback(
   imageSrc: string,
   corners: Point[],
   horizontalTilt: number = 0,
-  verticalTilt: number = 0
+  verticalTilt: number = 0,
+  filter: ScanFilter = 'original'
 ): Promise<string> {
+  // 1. Try backend /scan-pro if available with quick timeout
   try {
     const rawBlob = await fetch(imageSrc).then((r) => r.blob());
     const formData = new FormData();
@@ -110,7 +121,7 @@ export async function processScanWithFallback(
     formData.append('vertical_tilt', verticalTilt.toString());
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
 
     const res = await fetch('http://localhost:8000/scan-pro', {
       method: 'POST',
@@ -124,78 +135,19 @@ export async function processScanWithFallback(
       return URL.createObjectURL(blob);
     }
   } catch {
-    // Backend offline; perform client-side canvas crop & enhancement
+    // Backend offline; proceed to client-side homography warp
   }
 
-  // Client-side Canvas Fallback:
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(imageSrc);
-        return;
-      }
+  // 2. In-browser 4-Point Homography Perspective Warp + CamScanner Enhancement
+  try {
+    const img = await loadImageElement(imageSrc);
+    const ordered = orderPoints(corners);
 
-      // Order corners: TL, TR, BR, BL
-      const [tl, tr, br, bl] = corners.length === 4 ? corners : [
-        { x: 0, y: 0 },
-        { x: img.naturalWidth, y: 0 },
-        { x: img.naturalWidth, naturalHeight: img.naturalHeight },
-        { x: 0, y: img.naturalHeight },
-      ];
-
-      // Calculate destination dimensions
-      const widthTop = Math.hypot(tr.x - tl.x, tr.y - tl.y);
-      const widthBottom = Math.hypot(br.x - bl.x, br.y - bl.y);
-      const heightLeft = Math.hypot(bl.x - tl.x, bl.y - tl.y);
-      const heightRight = Math.hypot(br.x - tr.x, br.y - tr.y);
-
-      const targetWidth = Math.max(widthTop, widthBottom) || img.naturalWidth;
-      const targetHeight = Math.max(heightLeft, heightRight) || img.naturalHeight;
-
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-
-      // Draw bounding box cropped area
-      const minX = Math.max(0, Math.min(tl.x, bl.x));
-      const minY = Math.max(0, Math.min(tl.y, tr.y));
-      const maxX = Math.min(img.naturalWidth, Math.max(tr.x, br.x));
-      const maxY = Math.min(img.naturalHeight, Math.max(bl.y, br.y));
-      const srcW = Math.max(10, maxX - minX);
-      const srcH = Math.max(10, maxY - minY);
-
-      // Apply subtle tilt rotation if set
-      if (horizontalTilt !== 0) {
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((horizontalTilt * Math.PI) / 180);
-        ctx.translate(-canvas.width / 2, -canvas.height / 2);
-      }
-
-      ctx.drawImage(img, minX, minY, srcW, srcH, 0, 0, targetWidth, targetHeight);
-
-      // CamScanner-style enhancement: increase contrast and slight sharpness
-      try {
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const d = imgData.data;
-        const contrast = 1.15; // 15% contrast boost
-        const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
-
-        for (let i = 0; i < d.length; i += 4) {
-          d[i] = factor * (d[i] - 128) + 128; // R
-          d[i + 1] = factor * (d[i + 1] - 128) + 128; // G
-          d[i + 2] = factor * (d[i + 2] - 128) + 128; // B
-        }
-        ctx.putImageData(imgData, 0, 0);
-      } catch {
-        // canvas tainted or security sandbox; keep raw cropped
-      }
-
-      resolve(canvas.toDataURL('image/jpeg', 0.95));
-    };
-    img.onerror = () => resolve(imageSrc);
-    img.src = imageSrc;
-  });
+    // Apply 4-point homography perspective warp with selected CamScanner filter
+    const resultDataUrl = await warpPerspectiveDocument(img, ordered, filter);
+    return resultDataUrl;
+  } catch (err) {
+    console.error('Client-side perspective warp error:', err);
+    return imageSrc;
+  }
 }

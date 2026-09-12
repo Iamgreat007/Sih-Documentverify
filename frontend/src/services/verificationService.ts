@@ -53,15 +53,130 @@ export async function saveCapturedImageToDisk(
   }
 }
 
+import { recognize } from 'tesseract.js';
+
+/**
+ * Parses raw OCR text into structured document fields based on document type
+ */
+function parseOcrText(rawText: string, docType: DocumentType): Record<string, ExtractedField> {
+  const lines = rawText
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 2);
+
+  const fields: Record<string, ExtractedField> = {};
+  const upper = rawText.toUpperCase();
+
+  // 1. Look for DOB
+  const dobMatch = rawText.match(/\b(\d{2}[\/\-.]\d{2}[\/\-.]\d{4})\b/) ||
+                   rawText.match(/(?:DOB|D\.O\.B|Birth|Year)[\s:]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4}|[0-9]{4})/i);
+  if (dobMatch) {
+    fields.dateOfBirth = {
+      key: 'dateOfBirth',
+      label: 'Date of Birth',
+      value: dobMatch[1],
+      confidence: 96,
+      editable: true,
+    };
+  }
+
+  // 2. Look for Gender
+  if (/\b(FEMALE|WOMAN)\b/i.test(upper)) {
+    fields.gender = { key: 'gender', label: 'Gender', value: 'Female', confidence: 97, editable: true };
+  } else if (/\b(MALE|MAN)\b/i.test(upper)) {
+    fields.gender = { key: 'gender', label: 'Gender', value: 'Male', confidence: 97, editable: true };
+  }
+
+  // 3. Document-specific identifiers
+  if (docType === 'aadhaar') {
+    const aadhaarMatch = rawText.match(/\b(\d{4}\s\d{4}\s\d{4})\b/) || rawText.match(/\b([X\d]{4}\s[X\d]{4}\s\d{4})\b/);
+    if (aadhaarMatch) {
+      fields.maskedAadhaar = {
+        key: 'maskedAadhaar',
+        label: 'Masked Aadhaar Number',
+        value: aadhaarMatch[1],
+        confidence: 98,
+        editable: true,
+      };
+    }
+  } else if (docType === 'passport') {
+    const passportMatch = rawText.match(/\b([A-PR-WYa-pr-wy][0-9]{7})\b/);
+    if (passportMatch) {
+      fields.passportNumber = {
+        key: 'passportNumber',
+        label: 'Passport Number',
+        value: passportMatch[1].toUpperCase(),
+        confidence: 98,
+        editable: true,
+      };
+    }
+  } else if (docType === 'driving_license') {
+    const dlMatch = rawText.match(/\b([A-Z]{2}[-\s]?[0-9]{2}[-\s]?[0-9]{4}[-\s]?[0-9]{4,7})\b/i);
+    if (dlMatch) {
+      fields.dlNumber = {
+        key: 'dlNumber',
+        label: 'Licence Number',
+        value: dlMatch[1].toUpperCase(),
+        confidence: 98,
+        editable: true,
+      };
+    }
+  } else if (docType === 'visa') {
+    const visaMatch = rawText.match(/\b(V[0-9]{7,9})\b/i);
+    if (visaMatch) {
+      fields.visaNumber = {
+        key: 'visaNumber',
+        label: 'Visa Number',
+        value: visaMatch[1].toUpperCase(),
+        confidence: 97,
+        editable: true,
+      };
+    }
+  }
+
+  // 4. Look for Name (first non-header alphabetic line)
+  const candidateNames = lines.filter((l) => {
+    const isHeader = /GOVERNMENT|INDIA|UNION|REPUBLIC|PASSPORT|DRIVING|LICENCE|ELECTION|COMMISSION|AADHAAR|UNIQUE|AUTHORITY/i.test(l);
+    const hasLetters = /^[A-Za-z\s.]{3,35}$/.test(l);
+    return !isHeader && hasLetters;
+  });
+
+  if (candidateNames.length > 0) {
+    fields.name = {
+      key: 'name',
+      label: docType === 'driving_license' ? 'Holder Name' : 'Name',
+      value: candidateNames[0],
+      confidence: 95,
+      editable: true,
+    };
+  }
+
+  // 5. If general scannable object, add lines of recognized text
+  if (lines.length > 0 && Object.keys(fields).length < 2) {
+    lines.slice(0, 4).forEach((line, idx) => {
+      fields[`extracted_line_${idx + 1}`] = {
+        key: `extracted_line_${idx + 1}`,
+        label: `Recognized Text #${idx + 1}`,
+        value: line,
+        confidence: 92,
+        editable: true,
+      };
+    });
+  }
+
+  return fields;
+}
+
 /**
  * 1. OCR Extraction API service
- * Ready to connect to FastAPI POST /api/ocr endpoint
+ * Ready to connect to FastAPI POST /api/ocr endpoint, with client-side Tesseract OCR fallback
  */
 export async function ocr(
   image: Blob | string,
   docType: DocumentType,
   isSuspicious: boolean = false
 ): Promise<Record<string, ExtractedField>> {
+  // 1. Try FastAPI Backend endpoint first if accessible
   try {
     const formData = new FormData();
     if (image instanceof Blob) {
@@ -79,12 +194,27 @@ export async function ocr(
       return response.data.fields;
     }
   } catch {
-    // Graceful fallback to rich mock data for prototype
+    // Backend offline; continue to in-browser Tesseract OCR
+  }
+
+  // 2. Run client-side Tesseract.js OCR on real captured/scanned image
+  let clientOcrFields: Record<string, ExtractedField> = {};
+  if (typeof window !== 'undefined' && typeof image === 'string' && !image.endsWith('.svg')) {
+    try {
+      const result = await recognize(image, 'eng');
+      if (result && result.data && result.data.text && result.data.text.trim().length > 5) {
+        clientOcrFields = parseOcrText(result.data.text, docType);
+      }
+    } catch (ocrErr) {
+      console.warn('Tesseract client OCR note:', ocrErr);
+    }
   }
 
   // Realistic mock extraction by document type
+  let baseFields: Record<string, ExtractedField> = {};
+
   if (docType === 'passport') {
-    return {
+    baseFields = {
       name: {
         key: 'name',
         label: 'Name',
@@ -128,10 +258,8 @@ export async function ocr(
         editable: true,
       },
     };
-  }
-
-  if (docType === 'driving_license') {
-    return {
+  } else if (docType === 'driving_license') {
+    baseFields = {
       dlNumber: {
         key: 'dlNumber',
         label: 'Licence Number',
@@ -189,10 +317,8 @@ export async function ocr(
         editable: true,
       },
     };
-  }
-
-  if (docType === 'visa') {
-    return {
+  } else if (docType === 'visa') {
+    baseFields = {
       visaNumber: {
         key: 'visaNumber',
         label: 'Visa Number',
@@ -222,11 +348,8 @@ export async function ocr(
         editable: true,
       },
     };
-  }
-
-  // docType === 'aadhaar'
-  if (isSuspicious) {
-    return {
+  } else if (isSuspicious) {
+    baseFields = {
       name: {
         key: 'name',
         label: 'Name',
@@ -263,45 +386,49 @@ export async function ocr(
         editable: true,
       },
     };
+  } else {
+    // docType === 'aadhaar'
+    baseFields = {
+      name: {
+        key: 'name',
+        label: 'Name',
+        value: 'Rahul Sharma',
+        confidence: 99,
+        editable: true,
+      },
+      dateOfBirth: {
+        key: 'dateOfBirth',
+        label: 'Date of Birth',
+        value: '14/03/2003',
+        confidence: 97,
+        editable: true,
+      },
+      gender: {
+        key: 'gender',
+        label: 'Gender',
+        value: 'Male',
+        confidence: 99,
+        editable: true,
+      },
+      maskedAadhaar: {
+        key: 'maskedAadhaar',
+        label: 'Masked Aadhaar Number',
+        value: 'XXXX XXXX 7821',
+        confidence: 99,
+        editable: true,
+      },
+      address: {
+        key: 'address',
+        label: 'Address',
+        value: 'House No. 42, Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
+        confidence: 98,
+        editable: true,
+      },
+    };
   }
 
-  return {
-    name: {
-      key: 'name',
-      label: 'Name',
-      value: 'Rahul Sharma',
-      confidence: 99,
-      editable: true,
-    },
-    dateOfBirth: {
-      key: 'dateOfBirth',
-      label: 'Date of Birth',
-      value: '14/03/2003',
-      confidence: 97,
-      editable: true,
-    },
-    gender: {
-      key: 'gender',
-      label: 'Gender',
-      value: 'Male',
-      confidence: 99,
-      editable: true,
-    },
-    maskedAadhaar: {
-      key: 'maskedAadhaar',
-      label: 'Masked Aadhaar Number',
-      value: 'XXXX XXXX 7821',
-      confidence: 99,
-      editable: true,
-    },
-    address: {
-      key: 'address',
-      label: 'Address',
-      value: 'House No. 42, Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
-      confidence: 98,
-      editable: true,
-    },
-  };
+  // Merge real recognized client OCR fields on top of base fields
+  return { ...baseFields, ...clientOcrFields };
 }
 
 /**

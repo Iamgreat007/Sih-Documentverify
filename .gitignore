@@ -72,3 +72,6 @@ frontend/next-env.d.ts
 # Saved images runtime output (keep directory structure via .gitkeep)
 image/*
 !image/.gitkeep
+
+# Temporary clone/scratch directory
+scratch/
