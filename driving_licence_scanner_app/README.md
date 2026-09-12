@@ -20,10 +20,14 @@ Interactive web application and standalone CLI tool for extracting structured de
    - **`vehicle_classes`**: Authorized categories (`LMV`, `MCWG`, `TRANS`, `HMV`, etc.)
    - **`issuing_authority`**: RTO / State Transport Authority
    - **`validity_status`**: Live status calculation (`VALID`, `EXPIRED`, `PENDING_RENEWAL`)
+   - **`qr_code_detected`**: Boolean flag indicating if a digital QR barcode was detected on the card
+   - **`qr_code_data`**: Decoded string payload / digital signature from the QR code (if present)
+   - **`qr_code_image`**: Automatically cropped and preserved QR code image asset
    - **`image_of_person`**: Automatically cropped driver portrait photo
 4. **Interactive Dashboard**:
    - Visual Smart Card simulation with simulated chip & badge.
    - Vehicle class badge chips (COV).
+   - Dedicated QR Code visualizer with cropped QR badge & decoded payload text.
    - Real-time JSON viewer with instant "Copy JSON" button.
    - Session history panel with click-to-view previous scans.
    - One-click "Export All JSON" to download `extracted_driving_licence_data.json`.
@@ -77,6 +81,9 @@ Batch process an entire directory:
   ],
   "issuing_authority": "Transport Department, Govt. of Punjab",
   "validity_status": "ACTIVE",
+  "qr_code_detected": true,
+  "qr_code_data": "DL:PB2320240004974|DOB:14/08/1992|COV:LMV,MCWG",
+  "qr_code_image": "extracted_portraits/sample_dl_qr_code.jpg",
   "address": null,
   "image_of_person": "extracted_portraits/sample_dl_driver_photo.jpg"
 }

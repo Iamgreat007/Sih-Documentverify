@@ -31,6 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const dispAuthority = document.getElementById('dispAuthority');
     const vehicleClassesList = document.getElementById('vehicleClassesList');
     
+    // QR Code Elements
+    const qrCodeSection = document.getElementById('qrCodeSection');
+    const qrStatusBadge = document.getElementById('qrStatusBadge');
+    const qrImg = document.getElementById('qrImg');
+    const dispQrData = document.getElementById('dispQrData');
+    
     const jsonOutput = document.getElementById('jsonOutput');
     const toggleJson = document.getElementById('toggleJson');
     const copyJsonBtn = document.getElementById('copyJsonBtn');
@@ -241,6 +247,27 @@ document.addEventListener('DOMContentLoaded', () => {
             span.textContent = cls;
             vehicleClassesList.appendChild(span);
         });
+
+        // QR Code Handling
+        if (data.qr_code_detected) {
+            qrStatusBadge.className = 'badge badge-success';
+            qrStatusBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> QR DETECTED';
+            if (data.qr_code_image_url) {
+                qrImg.src = data.qr_code_image_url;
+            } else if (data.qr_code_image) {
+                qrImg.src = `/${data.qr_code_image}`;
+            } else {
+                qrImg.src = "https://via.placeholder.com/100x100/1a2624/00e5a3?text=QR+Code";
+            }
+            dispQrData.textContent = data.qr_code_data || "Digital QR code detected & cropped from input document.";
+            dispQrData.style.color = "#a7f3d0";
+        } else {
+            qrStatusBadge.className = 'badge badge-warning';
+            qrStatusBadge.innerHTML = '<i class="fa-solid fa-circle-minus"></i> NO QR CODE';
+            qrImg.src = "https://via.placeholder.com/100x100/1a2624/64748b?text=No+QR";
+            dispQrData.textContent = "Standard / Legacy DL Format (No 2D barcode detected).";
+            dispQrData.style.color = "#94a3b8";
+        }
 
         // JSON accordion
         jsonOutput.textContent = JSON.stringify(data, null, 2);

@@ -143,6 +143,24 @@
                         </div>
                     </div>
 
+                    <!-- QR Code Verification Section -->
+                    <div class="qr-code-box" id="qrCodeSection">
+                        <div class="qr-header">
+                            <span><i class="fa-solid fa-qrcode"></i> Digital Security QR Code</span>
+                            <span id="qrStatusBadge" class="badge badge-success"><i class="fa-solid fa-check-circle"></i> QR DETECTED</span>
+                        </div>
+                        <div class="qr-content-flex">
+                            <div class="qr-img-wrapper" id="qrImgWrapper">
+                                <img id="qrImg" src="https://via.placeholder.com/100x100/1a2624/00e5a3?text=QR+Code" alt="Cropped QR Code">
+                                <span class="qr-caption"><i class="fa-solid fa-crop-simple"></i> Cropped QR</span>
+                            </div>
+                            <div class="qr-details">
+                                <span class="label">DECODED PAYLOAD / DIGITAL SIGNATURE</span>
+                                <p id="dispQrData" class="qr-data-text">Scanning for 2D barcode / SARATHI digital payload...</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Detailed Grid -->
                     <div class="fields-grid">
                         <div class="field-item">

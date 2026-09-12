@@ -75,9 +75,12 @@ async def scan_dl_files(files: List[UploadFile] = File(...)):
 
         result = extractor.process_image(contents, file_name=file_name)
 
-        # Adjust portrait URL for web frontend
+        # Adjust URLs for web frontend
         if result.get("image_of_person"):
             result["image_of_person_url"] = f"/extracted_portraits/{os.path.basename(result['image_of_person'])}"
+
+        if result.get("qr_code_image"):
+            result["qr_code_image_url"] = f"/extracted_portraits/{os.path.basename(result['qr_code_image'])}"
 
         result["uploaded_image_url"] = f"/uploads/{file_name}"
 
@@ -108,6 +111,8 @@ async def scan_camera_snapshot(image_base64: str = Form(...), file_name: str = F
 
     if result.get("image_of_person"):
         result["image_of_person_url"] = f"/extracted_portraits/{os.path.basename(result['image_of_person'])}"
+    if result.get("qr_code_image"):
+        result["qr_code_image_url"] = f"/extracted_portraits/{os.path.basename(result['qr_code_image'])}"
     result["uploaded_image_url"] = f"/uploads/{file_name}"
 
     history = load_history()

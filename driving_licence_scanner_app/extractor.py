@@ -139,6 +139,86 @@ class DrivingLicenceExtractor:
             return photo_rel_path
         return None
 
+    def extract_qr_code(self, img, file_stem):
+        """
+        Detects, decodes, and crops QR codes present on the driving licence photo.
+        Returns: (qr_detected: bool, qr_data: str or None, qr_image_path: str or None)
+        """
+        h, w = img.shape[:2]
+        detector = cv2.QRCodeDetector()
+        
+        # 1. Direct detection & decode on BGR image
+        data, points, straight_qrcode = detector.detectAndDecode(img)
+        
+        crop_rel_path = None
+        
+        # Check detected bounding polygon coordinates
+        if points is not None and len(points) > 0:
+            pts = points[0].astype(int)
+            x_min = max(0, int(np.min(pts[:, 0])))
+            y_min = max(0, int(np.min(pts[:, 1])))
+            x_max = min(w, int(np.max(pts[:, 0])))
+            y_max = min(h, int(np.max(pts[:, 1])))
+            
+            # Add padding
+            pad_x = int((x_max - x_min) * 0.15) + 6
+            pad_y = int((y_max - y_min) * 0.15) + 6
+            x1 = max(0, x_min - pad_x)
+            y1 = max(0, y_min - pad_y)
+            x2 = min(w, x_max + pad_x)
+            y2 = min(h, y_max + pad_y)
+            
+            qr_crop = img[y1:y2, x1:x2]
+            if qr_crop.size > 0:
+                qr_filename = f"{file_stem}_qr_code.jpg"
+                qr_abs_path = os.path.join(self.output_photo_dir, qr_filename)
+                cv2.imwrite(qr_abs_path, qr_crop)
+                crop_rel_path = f"{self.output_photo_dir}/{qr_filename}"
+                
+        # 2. Check rectified straight_qrcode output from OpenCV
+        if not crop_rel_path and straight_qrcode is not None and straight_qrcode.size > 0:
+            qr_filename = f"{file_stem}_qr_code.jpg"
+            qr_abs_path = os.path.join(self.output_photo_dir, qr_filename)
+            cv2.imwrite(qr_abs_path, straight_qrcode)
+            crop_rel_path = f"{self.output_photo_dir}/{qr_filename}"
+            
+        # 3. Grayscale & Contrast-Enhanced fallback detection
+        if not crop_rel_path:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            prep = clahe.apply(gray)
+            
+            data_g, points_g, straight_g = detector.detectAndDecode(prep)
+            if data_g and not data:
+                data = data_g
+                
+            if points_g is not None and len(points_g) > 0:
+                pts = points_g[0].astype(int)
+                x_min = max(0, int(np.min(pts[:, 0])))
+                y_min = max(0, int(np.min(pts[:, 1])))
+                x_max = min(w, int(np.max(pts[:, 0])))
+                y_max = min(h, int(np.max(pts[:, 1])))
+                
+                pad_x = int((x_max - x_min) * 0.15) + 6
+                pad_y = int((y_max - y_min) * 0.15) + 6
+                x1 = max(0, x_min - pad_x)
+                y1 = max(0, y_min - pad_y)
+                x2 = min(w, x_max + pad_x)
+                y2 = min(h, y_max + pad_y)
+                
+                qr_crop = img[y1:y2, x1:x2]
+                if qr_crop.size > 0:
+                    qr_filename = f"{file_stem}_qr_code.jpg"
+                    qr_abs_path = os.path.join(self.output_photo_dir, qr_filename)
+                    cv2.imwrite(qr_abs_path, qr_crop)
+                    crop_rel_path = f"{self.output_photo_dir}/{qr_filename}"
+
+        # Clean string if empty
+        qr_data_clean = str(data).strip() if data else None
+        qr_detected = bool(qr_data_clean or crop_rel_path)
+
+        return qr_detected, qr_data_clean, crop_rel_path
+
     def clean_name_str(self, val):
         if not val or not isinstance(val, str):
             return None
@@ -303,11 +383,14 @@ class DrivingLicenceExtractor:
         # 3. Extract Driver Portrait
         image_of_person = self.extract_portrait(canonical_img, file_stem)
 
-        # 4. Enhance and run High-Speed OCR
+        # 4. Extract and Decode QR Code (if present)
+        qr_code_detected, qr_code_data, qr_code_image = self.extract_qr_code(canonical_img, file_stem)
+
+        # 5. Enhance and run High-Speed OCR
         enhanced = self.enhance_image(canonical_img)
         ocr_results = self.reader.readtext(enhanced, detail=0)
 
-        # 5. Extraction Logic
+        # 6. Extraction Logic
         full_text = " ".join([t.strip() for t in ocr_results if t.strip()])
 
         # DL Number
@@ -406,6 +489,9 @@ class DrivingLicenceExtractor:
             "vehicle_classes": vehicle_classes,
             "issuing_authority": issuing_authority,
             "validity_status": validity_status,
+            "qr_code_detected": qr_code_detected,
+            "qr_code_data": qr_code_data,
+            "qr_code_image": qr_code_image,
             "address": None,
             "image_of_person": image_of_person
         }
