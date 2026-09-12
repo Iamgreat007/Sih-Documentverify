@@ -432,7 +432,7 @@ export function calculateRisk(
 
   if (tampering.tampered || !face.matched || !validation.isValid) {
     const baseScore = Math.round(70 + Math.random() * 15);
-    const score = isEkycSkipped ? Math.min(96, baseScore + 10) : score;
+    const score = isEkycSkipped ? Math.min(96, baseScore + 10) : baseScore;
     const checks: VerificationResult['checks'] = [
       {
         id: 'ocr',
