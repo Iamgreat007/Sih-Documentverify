@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <linearGradient id="dlBackBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="50%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="10" y="10" width="780" height="480" rx="16" fill="url(#dlBackBg)" stroke="#3b82f6" stroke-width="2"/>
+
+  <!-- Top Blue Header -->
+  <rect x="10" y="10" width="780" height="45" rx="16 16 0 0" fill="#1e3a8a"/>
+  <text x="400" y="38" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="3">UNION OF INDIA DRIVING LICENCE (REVERSE)</text>
+
+  <!-- Permanent Address Details -->
+  <g transform="translate(45, 75)">
+    <text x="0" y="18" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#1e40af">PERMANENT ADDRESS</text>
+    <rect x="0" y="28" width="460" height="95" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="15" y="55" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#0f172a">
+      H.No. 42, Pocket B, Mayur Vihar Phase 1,
+    </text>
+    <text x="15" y="80" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#0f172a">
+      New Delhi, Delhi - 110091
+    </text>
+    <text x="15" y="105" font-family="Arial, sans-serif" font-size="12" font-weight="600" fill="#64748b">
+      District: East Delhi • Phone: +91 98765 43210
+    </text>
+  </g>
+
+  <!-- Right: Digital QR Code -->
+  <g transform="translate(550, 75)">
+    <rect x="0" y="0" width="190" height="190" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+    <rect x="15" y="15" width="45" height="45" fill="#0f172a" rx="3"/>
+    <rect x="23" y="23" width="29" height="29" fill="#ffffff" rx="2"/>
+    <rect x="30" y="30" width="15" height="15" fill="#0f172a"/>
+
+    <rect x="130" y="15" width="45" height="45" fill="#0f172a" rx="3"/>
+    <rect x="138" y="23" width="29" height="29" fill="#ffffff" rx="2"/>
+    <rect x="145" y="30" width="15" height="15" fill="#0f172a"/>
+
+    <rect x="15" y="130" width="45" height="45" fill="#0f172a" rx="3"/>
+    <rect x="23" y="138" width="29" height="29" fill="#ffffff" rx="2"/>
+    <rect x="30" y="145" width="15" height="15" fill="#0f172a"/>
+
+    <rect x="80" y="30" width="20" height="20" fill="#0f172a"/>
+    <rect x="80" y="80" width="30" height="30" fill="#0f172a"/>
+    <rect x="125" y="90" width="35" height="25" fill="#0f172a"/>
+    <rect x="30" y="85" width="30" height="25" fill="#0f172a"/>
+    <rect x="80" y="130" width="35" height="25" fill="#0f172a"/>
+    <text x="95" y="210" font-family="Arial" font-size="10" font-weight="bold" fill="#64748b" text-anchor="middle">SARATHI PARIVAHAN QR</text>
+  </g>
+
+  <!-- Vehicle Category Table -->
+  <g transform="translate(45, 230)">
+    <rect x="0" y="0" width="460" height="135" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+    <rect x="0" y="0" width="460" height="28" rx="8 8 0 0" fill="#f1f5f9"/>
+    <text x="15" y="18" font-family="Arial" font-size="10" font-weight="bold" fill="#475569">COV</text>
+    <text x="100" y="18" font-family="Arial" font-size="10" font-weight="bold" fill="#475569">ISSUE DATE</text>
+    <text x="230" y="18" font-family="Arial" font-size="10" font-weight="bold" fill="#475569">VALIDITY</text>
+    <text x="360" y="18" font-family="Arial" font-size="10" font-weight="bold" fill="#475569">BADGE NO.</text>
+
+    <!-- Row 1 -->
+    <text x="15" y="55" font-family="Courier New" font-size="13" font-weight="bold" fill="#0f172a">MCWG</text>
+    <text x="100" y="55" font-family="Courier New" font-size="13" font-weight="bold" fill="#0f172a">15/04/2021</text>
+    <text x="230" y="55" font-family="Courier New" font-size="13" font-weight="bold" fill="#059669">13/03/2043</text>
+    <text x="360" y="55" font-family="Courier New" font-size="13" font-weight="bold" fill="#64748b">N/A</text>
+
+    <!-- Row 2 -->
+    <text x="15" y="90" font-family="Courier New" font-size="13" font-weight="bold" fill="#0f172a">LMV</text>
+    <text x="100" y="90" font-family="Courier New" font-size="13" font-weight="bold" fill="#0f172a">15/04/2021</text>
+    <text x="230" y="90" font-family="Courier New" font-size="13" font-weight="bold" fill="#059669">13/03/2043</text>
+    <text x="360" y="90" font-family="Courier New" font-size="13" font-weight="bold" fill="#64748b">N/A</text>
+  </g>
+
+  <!-- Authority Sign & Footer -->
+  <g transform="translate(540, 310)">
+    <text x="95" y="30" font-family="'Brush Script MT', cursive, sans-serif" font-size="24" fill="#1e3a8a" text-anchor="middle">R. K. Verma</text>
+    <line x1="20" y1="36" x2="170" y2="36" stroke="#94a3b8" stroke-width="1"/>
+    <text x="95" y="50" font-family="Arial" font-size="9" font-weight="bold" fill="#64748b" text-anchor="middle">LICENSING AUTHORITY, DELHI</text>
+  </g>
+
+  <!-- Bottom Blue Ribbon -->
+  <rect x="10" y="440" width="780" height="50" rx="0 0 16 16" fill="#1e3a8a"/>
+  <text x="400" y="470" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="2">
+    PARIVAHAN SEWA • MINISTRY OF ROAD TRANSPORT &amp; HIGHWAYS
+  </text>
+</svg>

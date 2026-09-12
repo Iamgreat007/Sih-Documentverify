@@ -1,13 +1,33 @@
-# Byte-compiled / optimized / DLL files
+# Dependencies
+node_modules/
+frontend/node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+frontend/build/
+.vercel/
+
+# Python / FastAPI
 __pycache__/
+backend/__pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
+env/
+venv/
+backend/venv/
+backend/.venv/
+.venv/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -20,78 +40,38 @@ parts/
 sdist/
 var/
 wheels/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
+# Testing & Coverage
+coverage/
+frontend/coverage/
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-.ipython/
-
-# Environments
+# Environment Variables & Secrets
 .env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+.env*.local
+frontend/.env*.local
 
-# DeepSeek OCR / ML Weights & Checkpoints
-checkpoints/
-weights/
-models/
-*.pt
-*.pth
-*.bin
-*.safetensors
-*.onnx
-*.engine
-
-# Datasets & Outputs
-data/
-datasets/
-runs/
-logs/
+# Logs
 *.log
-output/
-outputs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# IDEs and Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-*.sublime-project
-*.sublime-workspace
-
-# Operating System
+# OS / Editor files
 .DS_Store
 Thumbs.db
+*.pem
+.vscode/
+.idea/
+*.tsbuildinfo
+frontend/next-env.d.ts
+
+# Saved images runtime output (keep directory structure via .gitkeep)
+image/*
+!image/.gitkeep
+
+# Temporary clone/scratch directory
+scratch/
