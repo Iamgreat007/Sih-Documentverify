@@ -2,7 +2,9 @@ import axios from 'axios';
 import { DocumentType, ExtractedField, VerificationResult, AadhaarEkycData } from '@/types';
 
 // Future FastAPI Backend URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = typeof window !== 'undefined' 
+  ? `${window.location.protocol}//${window.location.hostname}:8000` 
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
 
 export interface TamperingResult {
   tampered: boolean;

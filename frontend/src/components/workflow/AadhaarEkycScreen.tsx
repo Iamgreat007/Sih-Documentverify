@@ -31,11 +31,13 @@ export default function AadhaarEkycScreen({
   const [isVerified, setIsVerified] = useState(false);
   const [ekycResult, setEkycResult] = useState<AadhaarEkycData | null>(null);
   const [showSkipModal, setShowSkipModal] = useState(false);
+  const [ekycFile, setEkycFile] = useState<File | null>(null);
 
   const handleVerify = async () => {
     setIsVerifying(true);
     try {
       // Connects to clean verifyAadhaar service function
+      // In a real implementation we would send the ekycFile as well
       const result = await verifyAadhaar(maskedAadhaar);
       setEkycResult(result);
       setIsVerified(true);
@@ -148,7 +150,28 @@ export default function AadhaarEkycScreen({
               </div>
             </div>
           ) : (
-            <div className="mb-5">
+            <div className="mb-5 space-y-3">
+              <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-slate-100 transition">
+                <input
+                  type="file"
+                  id="xml-upload"
+                  accept=".zip,.xml"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      console.log("Selected XML file:", file.name);
+                      setEkycFile(file);
+                    }
+                  }}
+                />
+                <label htmlFor="xml-upload" className="cursor-pointer flex flex-col items-center text-center">
+                  <span className="text-emerald-600 mb-1"><CreditCard className="w-5 h-5"/></span>
+                  <span className="text-xs font-bold text-slate-700">Upload Offline eKYC XML/ZIP</span>
+                  <span className="text-[9px] text-slate-500 mt-0.5">Required for UIDAI authentication</span>
+                </label>
+              </div>
+
               <button
                 type="button"
                 onClick={handleVerify}

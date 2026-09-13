@@ -51,7 +51,11 @@ export async function detectCornersWithFallback(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 600);
 
-    const res = await fetch('http://localhost:8000/detect-corners', {
+    const API_BASE_URL = typeof window !== 'undefined' 
+      ? `${window.location.protocol}//${window.location.hostname}:8000` 
+      : 'http://localhost:8000';
+
+    const res = await fetch(`${API_BASE_URL}/detect-corners`, {
       method: 'POST',
       body: formData,
       signal: controller.signal,
@@ -123,7 +127,11 @@ export async function processScanWithFallback(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1200);
 
-    const res = await fetch('http://localhost:8000/scan-pro', {
+    const API_BASE_URL = typeof window !== 'undefined' 
+      ? `${window.location.protocol}//${window.location.hostname}:8000` 
+      : 'http://localhost:8000';
+
+    const res = await fetch(`${API_BASE_URL}/scan-pro`, {
       method: 'POST',
       body: formData,
       signal: controller.signal,
