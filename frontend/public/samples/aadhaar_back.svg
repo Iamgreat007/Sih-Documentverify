@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <linearGradient id="aadhaarBackBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#f1f5f9"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="10" y="10" width="780" height="480" rx="16" fill="url(#aadhaarBackBg)" stroke="#cbd5e1" stroke-width="2"/>
+
+  <!-- Top Tricolor Bar -->
+  <rect x="10" y="10" width="780" height="12" rx="16 16 0 0" fill="#f97316"/>
+  <rect x="10" y="22" width="780" height="8" fill="#ffffff"/>
+  <rect x="10" y="30" width="780" height="8" fill="#16a34a"/>
+
+  <!-- UIDAI Logo (Top Right) -->
+  <g transform="translate(680, 50)">
+    <circle cx="40" cy="25" r="24" fill="#dc2626" opacity="0.9"/>
+    <path d="M40 8 L40 42 M23 25 L57 25 M28 13 L52 37 M28 37 L52 13" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="40" y="60" font-family="Arial" font-size="11" font-weight="bold" fill="#dc2626" text-anchor="middle">आधार</text>
+  </g>
+
+  <!-- Left: Address Information in Hindi & English -->
+  <g transform="translate(45, 80)">
+    <text x="0" y="20" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#dc2626">पता / Address:</text>
+    
+    <text x="0" y="50" font-family="Arial, sans-serif" font-size="13" font-weight="600" fill="#334155">
+      आत्मज: रमेश शर्मा, मकान नं. 42,
+    </text>
+    <text x="0" y="72" font-family="Arial, sans-serif" font-size="13" font-weight="600" fill="#334155">
+      पॉकेट बी, मयूर विहार फेज 1,
+    </text>
+    <text x="0" y="94" font-family="Arial, sans-serif" font-size="13" font-weight="600" fill="#334155">
+      नई दिल्ली, दिल्ली - 110091
+    </text>
+
+    <text x="0" y="135" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#0f172a">
+      S/O: Ramesh Sharma, House No. 42,
+    </text>
+    <text x="0" y="160" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#0f172a">
+      Pocket B, Mayur Vihar Phase 1,
+    </text>
+    <text x="0" y="185" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#0f172a">
+      New Delhi, Delhi - 110091
+    </text>
+  </g>
+
+  <!-- Right: Secure Large QR & Barcode Block -->
+  <g transform="translate(540, 100)">
+    <rect x="0" y="0" width="200" height="200" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+    <!-- QR Targets -->
+    <rect x="15" y="15" width="45" height="45" fill="#0f172a" rx="4"/>
+    <rect x="23" y="23" width="29" height="29" fill="#ffffff" rx="2"/>
+    <rect x="30" y="30" width="15" height="15" fill="#0f172a"/>
+
+    <rect x="140" y="15" width="45" height="45" fill="#0f172a" rx="4"/>
+    <rect x="148" y="23" width="29" height="29" fill="#ffffff" rx="2"/>
+    <rect x="155" y="30" width="15" height="15" fill="#0f172a"/>
+
+    <rect x="15" y="140" width="45" height="45" fill="#0f172a" rx="4"/>
+    <rect x="23" y="148" width="29" height="29" fill="#ffffff" rx="2"/>
+    <rect x="30" y="155" width="15" height="15" fill="#0f172a"/>
+
+    <rect x="80" y="30" width="20" height="20" fill="#0f172a"/>
+    <rect x="110" y="40" width="15" height="30" fill="#0f172a"/>
+    <rect x="80" y="80" width="40" height="20" fill="#0f172a"/>
+    <rect x="30" y="90" width="30" height="30" fill="#0f172a"/>
+    <rect x="140" y="90" width="25" height="30" fill="#0f172a"/>
+    <rect x="85" y="125" width="35" height="25" fill="#0f172a"/>
+    <rect x="135" y="135" width="40" height="40" fill="#0f172a"/>
+
+    <text x="100" y="222" font-family="Arial" font-size="11" font-weight="bold" fill="#64748b" text-anchor="middle">Digitally Signed Address QR</text>
+  </g>
+
+  <!-- Masked Aadhaar Number -->
+  <g transform="translate(40, 345)">
+    <rect x="0" y="0" width="720" height="65" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+    <text x="360" y="44" font-family="Courier New, monospace" font-size="32" font-weight="bold" fill="#0f172a" text-anchor="middle" letter-spacing="6">
+      XXXX XXXX 7821
+    </text>
+  </g>
+
+  <!-- Bottom Helpline Footer -->
+  <rect x="10" y="435" width="780" height="55" rx="0 0 16 16" fill="#dc2626"/>
+  <text x="400" y="460" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">
+    1947 | help@uidai.gov.in | www.uidai.gov.in
+  </text>
+  <text x="400" y="478" font-family="Arial, sans-serif" font-size="10" font-weight="600" fill="#fef2f2" text-anchor="middle">
+    Unique Identification Authority of India (UIDAI)
+  </text>
+</svg>

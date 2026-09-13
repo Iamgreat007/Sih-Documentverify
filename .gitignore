@@ -1,7 +1,39 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
 .venv/
-.pytest_cache/
+backend/.venv/
+env/
+venv/
+
+# Python / FastAPI / Testing
 __pycache__/
+backend/__pycache__/
 *.pyc
+*.py[cod]
+.pytest_cache/
 output/
 scratch/
 tesseract_setup.exe
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+frontend/build/
+.vercel/
+
+# Environment Variables & Secrets
+.env
+.env*.local
+frontend/.env*.local
+
+# Logs & OS files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Saved images runtime output
+image/*
+!image/.gitkeep
