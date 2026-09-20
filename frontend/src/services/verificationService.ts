@@ -179,6 +179,7 @@ export async function ocr(
   isSuspicious: boolean = false
 ): Promise<Record<string, ExtractedField>> {
   // 1. Try FastAPI Backend endpoint first if accessible
+  let backendFields: Record<string, ExtractedField> = {};
   try {
     const formData = new FormData();
     if (image instanceof Blob) {
@@ -193,7 +194,7 @@ export async function ocr(
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     if (response.data && response.data.fields) {
-      return response.data.fields;
+      backendFields = response.data.fields;
     }
   } catch {
     // Backend offline; continue to in-browser Tesseract OCR
@@ -212,225 +213,8 @@ export async function ocr(
     }
   }
 
-  // Realistic mock extraction by document type
-  let baseFields: Record<string, ExtractedField> = {};
-
-  if (docType === 'passport') {
-    baseFields = {
-      name: {
-        key: 'name',
-        label: 'Name',
-        value: 'Rahul Sharma',
-        confidence: 99,
-        editable: true,
-      },
-      passportNumber: {
-        key: 'passportNumber',
-        label: 'Passport Number',
-        value: 'A1234567',
-        confidence: 99,
-        editable: true,
-      },
-      nationality: {
-        key: 'nationality',
-        label: 'Nationality',
-        value: 'Indian',
-        confidence: 98,
-        editable: true,
-      },
-      dateOfBirth: {
-        key: 'dateOfBirth',
-        label: 'Date of Birth',
-        value: '14/03/2003',
-        confidence: 97,
-        editable: true,
-      },
-      gender: {
-        key: 'gender',
-        label: 'Gender',
-        value: 'Male',
-        confidence: 99,
-        editable: true,
-      },
-      expiryDate: {
-        key: 'expiryDate',
-        label: 'Expiry Date',
-        value: '22/08/2032',
-        confidence: 98,
-        editable: true,
-      },
-    };
-  } else if (docType === 'driving_license') {
-    baseFields = {
-      dlNumber: {
-        key: 'dlNumber',
-        label: 'Licence Number',
-        value: 'DL-0420110012345',
-        confidence: 99,
-        editable: true,
-      },
-      name: {
-        key: 'name',
-        label: 'Holder Name',
-        value: 'Rahul Sharma',
-        confidence: 99,
-        editable: true,
-      },
-      fatherName: {
-        key: 'fatherName',
-        label: "Father's Name",
-        value: 'Ramesh Sharma',
-        confidence: 98,
-        editable: true,
-      },
-      dateOfBirth: {
-        key: 'dateOfBirth',
-        label: 'Date of Birth',
-        value: '14/03/2003',
-        confidence: 97,
-        editable: true,
-      },
-      bloodGroup: {
-        key: 'bloodGroup',
-        label: 'Blood Group',
-        value: 'O+ (Positive)',
-        confidence: 99,
-        editable: true,
-      },
-      validity: {
-        key: 'validity',
-        label: 'Validity (NT)',
-        value: '13/03/2043',
-        confidence: 98,
-        editable: true,
-      },
-      vehicleClass: {
-        key: 'vehicleClass',
-        label: 'Class of Vehicle',
-        value: 'MCWG, LMV',
-        confidence: 99,
-        editable: true,
-      },
-      address: {
-        key: 'address',
-        label: 'Permanent Address',
-        value: 'H.No 42, Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
-        confidence: 97,
-        editable: true,
-      },
-    };
-  } else if (docType === 'visa') {
-    baseFields = {
-      visaNumber: {
-        key: 'visaNumber',
-        label: 'Visa Number',
-        value: 'V98765432',
-        confidence: 99,
-        editable: true,
-      },
-      visaType: {
-        key: 'visaType',
-        label: 'Visa Type',
-        value: 'Tourist / Business (B1/B2)',
-        confidence: 97,
-        editable: true,
-      },
-      expiryDate: {
-        key: 'expiryDate',
-        label: 'Expiry Date',
-        value: '15/12/2028',
-        confidence: 96,
-        editable: true,
-      },
-      passportNumber: {
-        key: 'passportNumber',
-        label: 'Passport Number',
-        value: 'A1234567',
-        confidence: 98,
-        editable: true,
-      },
-    };
-  } else if (isSuspicious) {
-    baseFields = {
-      name: {
-        key: 'name',
-        label: 'Name',
-        value: 'Rahul Sharma',
-        confidence: 94,
-        editable: true,
-      },
-      dateOfBirth: {
-        key: 'dateOfBirth',
-        label: 'Date of Birth',
-        value: '14/03/1990',
-        confidence: 76,
-        editable: true,
-      },
-      gender: {
-        key: 'gender',
-        label: 'Gender',
-        value: 'Male',
-        confidence: 98,
-        editable: true,
-      },
-      maskedAadhaar: {
-        key: 'maskedAadhaar',
-        label: 'Masked Aadhaar Number',
-        value: 'XXXX XXXX 7821',
-        confidence: 92,
-        editable: true,
-      },
-      address: {
-        key: 'address',
-        label: 'Address',
-        value: 'Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
-        confidence: 88,
-        editable: true,
-      },
-    };
-  } else {
-    // docType === 'aadhaar'
-    baseFields = {
-      name: {
-        key: 'name',
-        label: 'Name',
-        value: 'Rahul Sharma',
-        confidence: 99,
-        editable: true,
-      },
-      dateOfBirth: {
-        key: 'dateOfBirth',
-        label: 'Date of Birth',
-        value: '14/03/2003',
-        confidence: 97,
-        editable: true,
-      },
-      gender: {
-        key: 'gender',
-        label: 'Gender',
-        value: 'Male',
-        confidence: 99,
-        editable: true,
-      },
-      maskedAadhaar: {
-        key: 'maskedAadhaar',
-        label: 'Masked Aadhaar Number',
-        value: 'XXXX XXXX 7821',
-        confidence: 99,
-        editable: true,
-      },
-      address: {
-        key: 'address',
-        label: 'Address',
-        value: 'House No. 42, Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
-        confidence: 98,
-        editable: true,
-      },
-    };
-  }
-
-  // Merge real recognized client OCR fields on top of base fields
-  return { ...baseFields, ...clientOcrFields };
+  // Merge client OCR fields on top of backend fields (QR data, etc)
+  return { ...backendFields, ...clientOcrFields };
 }
 
 /**

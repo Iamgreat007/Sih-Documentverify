@@ -45,48 +45,54 @@ def load_json_data(doc_type):
 @api_view(['POST'])
 def ocr_view(request):
     """
-    Simulates OCR extraction by reading from the predefined JSON files.
-    Defaults to 'N/A' if fields are missing.
-    Also saves <documentname>_pic.jpg and <documentname>_qr.jpg mock images.
+    Extracts QR code from the uploaded image if present.
     """
     doc_type = request.data.get('document_type', 'aadhaar')
     file_obj = request.FILES.get('file')
     
-    json_data = load_json_data(doc_type)
-    
-    # Save mock pic and qr if file was uploaded
+    fields = {}
     pic_path = ""
     qr_path = ""
-    if file_obj:
-        output_dir = os.path.join(settings.BASE_DIR, '..', 'image')
-        os.makedirs(output_dir, exist_ok=True)
-        pic_path = os.path.join(output_dir, f"{doc_type}_pic.jpg")
-        qr_path = os.path.join(output_dir, f"{doc_type}_qr.jpg")
-        
-        # Just write the uploaded file as both pic and qr for mockup
-        file_content = file_obj.read()
-        with open(pic_path, 'wb') as f:
-            f.write(file_content)
-        with open(qr_path, 'wb') as f:
-            f.write(file_content)
-
-    # Format fields as expected by frontend
-    # If the JSON is empty, provide defaults or N/A
-    fields = {}
     
-    if doc_type == 'aadhaar':
-        fields['name'] = {'key': 'name', 'label': 'Name', 'value': json_data.get('name', 'N/A'), 'confidence': 99, 'editable': True}
-        fields['dateOfBirth'] = {'key': 'dateOfBirth', 'label': 'Date of Birth', 'value': json_data.get('dob', 'N/A'), 'confidence': 97, 'editable': True}
-        fields['maskedAadhaar'] = {'key': 'maskedAadhaar', 'label': 'Masked Aadhaar Number', 'value': json_data.get('aadhaar_number', 'N/A'), 'confidence': 99, 'editable': True}
-    elif doc_type == 'passport':
-        fields['name'] = {'key': 'name', 'label': 'Name', 'value': json_data.get('name', 'N/A'), 'confidence': 99, 'editable': True}
-        fields['passportNumber'] = {'key': 'passportNumber', 'label': 'Passport Number', 'value': json_data.get('passport_number', 'N/A'), 'confidence': 99, 'editable': True}
-    elif doc_type == 'driving_license':
-        fields['dlNumber'] = {'key': 'dlNumber', 'label': 'Licence Number', 'value': json_data.get('dl_number', 'N/A'), 'confidence': 99, 'editable': True}
-        fields['name'] = {'key': 'name', 'label': 'Holder Name', 'value': json_data.get('name', 'N/A'), 'confidence': 99, 'editable': True}
-    elif doc_type == 'visa':
-        fields['visaNumber'] = {'key': 'visaNumber', 'label': 'Visa Number', 'value': json_data.get('visa_number', 'N/A'), 'confidence': 99, 'editable': True}
-        
+    if file_obj:
+        try:
+            import cv2
+            import numpy as np
+            from pyzbar.pyzbar import decode
+            
+            # Read image for QR extraction
+            contents = file_obj.read()
+            nparr = np.frombuffer(contents, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            decoded_objects = decode(img)
+            if decoded_objects:
+                qr_text = decoded_objects[0].data.decode('utf-8')
+                fields['qr_data'] = {'key': 'qr_data', 'label': 'QR Code Data', 'value': qr_text, 'confidence': 100, 'editable': False}
+                
+                # Attempt to parse demographic data from the QR payload
+                try:
+                    import sys
+                    sys.path.append(os.path.join(settings.BASE_DIR, '..'))
+                    from aadhar import parse_secure_qr_string
+                    payload, _ = parse_secure_qr_string(qr_text)
+                    
+                    if payload:
+                        if payload.get('name'):
+                            fields['name'] = {'key': 'name', 'label': 'Name', 'value': payload['name'], 'confidence': 100, 'editable': True}
+                        if payload.get('dob'):
+                            fields['dateOfBirth'] = {'key': 'dateOfBirth', 'label': 'Date of Birth', 'value': payload['dob'], 'confidence': 100, 'editable': True}
+                        if payload.get('reference_id'):
+                            # Mask the reference ID to look like masked Aadhaar
+                            ref_id = str(payload['reference_id'])
+                            masked = f"XXXX XXXX {ref_id[-4:]}" if len(ref_id) >= 4 else ref_id
+                            fields['maskedAadhaar'] = {'key': 'maskedAadhaar', 'label': 'Masked Aadhaar Number', 'value': masked, 'confidence': 100, 'editable': True}
+                except Exception as parse_err:
+                    print("Could not parse QR payload for demographics:", parse_err)
+                    
+        except Exception as e:
+            print("QR extraction failed:", e)
+            
     return Response({"fields": fields, "pic_path": pic_path, "qr_path": qr_path})
 
 
@@ -95,16 +101,41 @@ def validate_document_view(request):
     doc_type = request.data.get('docType', 'aadhaar')
     fields = request.data.get('fields', {})
     
-    json_data = load_json_data(doc_type)
-    
-    # Simple validation mock using JSON data
     is_valid = True
     errors = []
     
     if doc_type == 'aadhaar':
-        if fields.get('maskedAadhaar', {}).get('value') == 'N/A':
+        if not fields.get('maskedAadhaar', {}).get('value') or fields.get('maskedAadhaar', {}).get('value') == 'N/A':
             is_valid = False
             errors.append("Aadhaar Number missing")
+            
+        qr_data = fields.get('qr_data', {}).get('value', '')
+        if qr_data:
+            try:
+                import sys
+                import os
+                sys.path.append(os.path.join(settings.BASE_DIR, '..'))
+                from aadhar import parse_secure_qr_string, verify_aadhaar_signature, run_cross_verification
+                
+                payload, signature = parse_secure_qr_string(qr_data)
+                is_signature_valid = verify_aadhaar_signature(payload, signature)
+                if not is_signature_valid:
+                    is_valid = False
+                    errors.append("Aadhaar QR signature verification failed.")
+                
+                # Cross verify OCR extracted data against QR
+                ocr_data = {k: v.get('value') for k, v in fields.items() if k != 'qr_data' and v.get('value')}
+                cross_result = run_cross_verification(ocr_data, qr_data)
+                
+                if cross_result.get('tamper_detected'):
+                    is_valid = False
+                    errors.append(f"Tampering detected! Confidence: {cross_result.get('confidence_score')}%")
+            except Exception as e:
+                print("Cross-verification error:", e)
+                errors.append(f"Cross-verification failed: {str(e)}")
+        else:
+            errors.append("No secure QR code found for verification.")
+            is_valid = False
     
     return Response({
         "isValid": is_valid,
@@ -132,12 +163,22 @@ def verify_face_view(request):
     # Try calling the Java Spring Boot Face Recognition API
     java_api_url = "http://localhost:8080/api/face-match"
     
+    # Save the selfie to the image folder
+    selfie_path = ""
+    if file_obj:
+        output_dir = os.path.join(settings.BASE_DIR, '..', 'image')
+        os.makedirs(output_dir, exist_ok=True)
+        selfie_path = os.path.join(output_dir, "selfie_pic.jpg")
+        with open(selfie_path, 'wb') as f:
+            f.write(file_obj.read())
+
+    # We assume the document picture is already saved as 'aadhaar_pic.jpg' or similar during OCR
+    doc_pic_path = os.path.join(settings.BASE_DIR, '..', 'image', 'aadhaar_pic.jpg')
+    
     try:
-        # In a real app, we would send the image file or paths.
-        # Here we just pass mock paths
         payload = {
-            "image1": "mock_pic1.jpg",
-            "image2": "mock_pic2.jpg"
+            "image1": doc_pic_path,
+            "image2": selfie_path
         }
         res = requests.post(java_api_url, json=payload, timeout=2)
         if res.status_code == 200:

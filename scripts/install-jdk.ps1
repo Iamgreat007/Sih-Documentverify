@@ -2,12 +2,13 @@ param(
     [string]$InstallDir = "${PSScriptRoot}\..\jdk"
 )
 
-$zipUrl = "https://github.com/adoptium/temurin17-binaries/releases/latest/download/OpenJDK17U-jdk_x64_windows_hotspot.zip"
+$zipUrl = "https://aka.ms/download-jdk/microsoft-jdk-17-windows-x64.zip"
 $zipPath = Join-Path $env:TEMP "jdk17.zip"
 $extractTemp = Join-Path $env:TEMP "jdk-extract"
 
 Write-Output "Downloading JDK 17 from $zipUrl..."
-Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+curl.exe -L -o $zipPath $zipUrl
 
 if (Test-Path $extractTemp) { Remove-Item $extractTemp -Recurse -Force }
 Expand-Archive -Path $zipPath -DestinationPath $extractTemp -Force
