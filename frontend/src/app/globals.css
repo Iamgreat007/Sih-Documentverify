@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
+  --background: #f1f5f9;
   --foreground: #0f172a;
 }
 
@@ -17,40 +17,6 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* CamScanner Laser Animation */
-@keyframes laserSweep {
-  0% {
-    top: 4%;
-    opacity: 0.8;
-  }
-  50% {
-    top: 94%;
-    opacity: 1;
-  }
-  100% {
-    top: 4%;
-    opacity: 0.8;
-  }
-}
-
-.animate-laser {
-  animation: laserSweep 2.8s ease-in-out infinite;
-}
-
-/* Subtle Pulse Glow */
-@keyframes subtlePulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-  }
-}
-
-.pulse-shutter {
-  animation: subtlePulse 2s infinite;
-}
-
 /* Mobile App Viewport Container */
 .smartphone-container {
   width: 100%;
@@ -61,7 +27,9 @@ body {
   display: flex;
   flex-direction: column;
   background: #ffffff;
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
 /* Clean Custom Scrollbars */
@@ -78,4 +46,13 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Hide scrollbar for cleanly scrollable areas if needed */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -1,4 +1,4 @@
-export type DocumentType = 'passport' | 'visa' | 'aadhaar' | 'driving_license';
+export type DocumentType = 'passport' | 'proof_of_address' | 'bank_statement' | 'employment_letter' | 'tax_documents' | 'birth_certificate' | 'visa' | 'residence_permit';
 
 export type DocumentSide = 'front' | 'back';
 
@@ -50,7 +50,7 @@ export interface AadhaarEkycData {
 }
 
 export interface VerificationResult {
-  riskLevel: 'LOW RISK' | 'MEDIUM RISK' | 'HIGH RISK';
+  riskLevel: 'ACCEPTED' | 'REVIEW REQUIRED' | 'FAILED' | 'MISSING';
   riskScore: number; // 0 to 100
   explanation: string;
   checks: {
@@ -67,8 +67,8 @@ export interface HistoryItem {
   documentType: DocumentType;
   fileName: string;
   holderName: string;
-  identifier: string; // e.g., A1234567, XXXX XXXX 7821, or DL-0420110012345
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  identifier: string;
+  riskLevel: 'ACCEPTED' | 'REVIEW REQUIRED' | 'FAILED' | 'MISSING';
   riskScore: number;
   timeAgo: string;
   timestamp: number;

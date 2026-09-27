@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { DocumentType } from '@/types';
-import { CheckCircle2, Loader2, Hourglass, ShieldCheck, Sparkles } from 'lucide-react';
+import { CheckCircle2, Loader2, Hourglass, ShieldCheck } from 'lucide-react';
 
 interface VerificationScreenProps {
   documentType: DocumentType;
@@ -14,24 +14,15 @@ export default function VerificationScreen({
   isSuspicious = false,
   onComplete,
 }: VerificationScreenProps) {
-  // Step sequence: 0 = starting, 1 = OCR, 2 = Doc validation, 3 = Tampering, 4 = Face, 5 = Aadhaar eKYC (if applicable), 6 = Complete
   const [stepIndex, setStepIndex] = useState<number>(1);
-
-  const isAadhaar = documentType === 'aadhaar';
 
   useEffect(() => {
     const timer1 = setTimeout(() => setStepIndex(2), 600);
     const timer2 = setTimeout(() => setStepIndex(3), 1300);
     const timer3 = setTimeout(() => setStepIndex(4), 2100);
     const timer4 = setTimeout(() => {
-      if (isAadhaar) {
-        setStepIndex(5);
-        // Aadhaar has its own eKYC interactive screen next!
-        setTimeout(() => onComplete(), 700);
-      } else {
-        setStepIndex(5);
-        setTimeout(() => onComplete(), 700);
-      }
+      setStepIndex(5);
+      setTimeout(() => onComplete(), 700);
     }, 2800);
 
     return () => {
@@ -40,74 +31,45 @@ export default function VerificationScreen({
       clearTimeout(timer3);
       clearTimeout(timer4);
     };
-  }, [isAadhaar, onComplete]);
+  }, [onComplete]);
 
   const checks = [
-    {
-      id: 'ocr',
-      label: 'OCR Extraction',
-      thresholdStep: 1,
-    },
-    {
-      id: 'doc',
-      label: 'Document Validation',
-      thresholdStep: 2,
-    },
-    {
-      id: 'tamper',
-      label: 'Tampering Detection',
-      thresholdStep: 3,
-    },
-    {
-      id: 'face',
-      label: 'Face Verification',
-      thresholdStep: 4,
-    },
+    { id: 'ocr', label: 'OCR Extraction', thresholdStep: 1 },
+    { id: 'doc', label: 'Format Validation', thresholdStep: 2 },
+    { id: 'tamper', label: 'Tampering Detection', thresholdStep: 3 },
+    { id: 'database', label: 'Database Verification', thresholdStep: 4 },
   ];
 
-  if (isAadhaar) {
-    checks.push({
-      id: 'ekyc',
-      label: 'Aadhaar eKYC',
-      thresholdStep: 5,
-    });
-  }
-
-  // Progress percentage calculation
   const totalSteps = checks.length;
   const progressPct = Math.min(100, Math.round((stepIndex / totalSteps) * 100));
 
   return (
     <div className="flex flex-col h-full bg-slate-50 text-slate-900 justify-between p-6 select-none">
-      {/* Top Header */}
-      <div className="text-center pt-6">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-3 shadow-inner">
-          <ShieldCheck className="w-8 h-8" />
+      <div className="text-center pt-8">
+        <div className="w-12 h-12 mx-auto rounded-lg bg-blue-50 border border-blue-100 text-blue-700 flex items-center justify-center mb-4">
+          <ShieldCheck className="w-6 h-6" />
         </div>
-        <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">AI Verification</h2>
-        <p className="text-xs text-slate-500 mt-1">
-          Running automated security & forensic checks
+        <h2 className="text-lg font-semibold text-slate-900">Verifying Document</h2>
+        <p className="text-sm text-slate-500 mt-1">
+          Running automated security checks
         </p>
       </div>
 
-      {/* Main Checklist Card */}
-      <div className="w-full max-w-sm mx-auto bg-white rounded-3xl p-6 border border-slate-200/90 shadow-lg shadow-slate-100">
-        {/* Subtle Animated Progress Bar */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-600 mb-1.5">
-            <span>Analyzing document</span>
-            <span className="font-mono text-emerald-600 font-bold">{progressPct}%</span>
+      <div className="w-full max-w-sm mx-auto bg-white rounded-lg p-5 border border-slate-200">
+        <div className="mb-5">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-600 mb-2">
+            <span>Progress</span>
+            <span className="font-mono text-blue-700 font-semibold">{progressPct}%</span>
           </div>
-          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-500 ease-out"
+              className="h-full bg-blue-700 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${progressPct}%` }}
             />
           </div>
         </div>
 
-        {/* The 4-5 core checks as specified in requirements */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {checks.map((c) => {
             const isDone = stepIndex >= c.thresholdStep;
             const isInProgress = stepIndex === c.thresholdStep - 1;
@@ -115,29 +77,29 @@ export default function VerificationScreen({
             return (
               <div
                 key={c.id}
-                className="flex items-center justify-between py-1.5 transition-all duration-300"
+                className="flex items-center justify-between py-1 transition-all duration-300"
               >
                 <div className="flex items-center gap-3">
                   {isDone ? (
-                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center animate-in zoom-in duration-200">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-blue-700" />
                     </div>
                   ) : isInProgress ? (
-                    <div className="w-6 h-6 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
-                      <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
                     </div>
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
-                      <Hourglass className="w-3.5 h-3.5 text-slate-400" />
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center">
+                      <Hourglass className="w-3.5 h-3.5 text-slate-300" />
                     </div>
                   )}
 
                   <span
-                    className={`text-sm font-semibold transition-colors ${
+                    className={`text-sm transition-colors ${
                       isDone
-                        ? 'text-slate-900 font-bold'
+                        ? 'text-slate-900 font-medium'
                         : isInProgress
-                        ? 'text-emerald-700'
+                        ? 'text-blue-700 font-medium'
                         : 'text-slate-400'
                     }`}
                   >
@@ -145,14 +107,13 @@ export default function VerificationScreen({
                   </span>
                 </div>
 
-                {/* Status symbol indicator */}
-                <div className="text-xs font-medium">
+                <div className="text-xs">
                   {isDone ? (
-                    <span className="text-emerald-600 font-bold">✓ Complete</span>
+                    <span className="text-blue-700 font-medium">Complete</span>
                   ) : isInProgress ? (
-                    <span className="text-amber-500 animate-pulse font-mono">Running...</span>
+                    <span className="text-slate-600">Processing...</span>
                   ) : (
-                    <span className="text-slate-300 font-mono">⏳ Queued</span>
+                    <span className="text-slate-300">Pending</span>
                   )}
                 </div>
               </div>
@@ -161,10 +122,9 @@ export default function VerificationScreen({
         </div>
       </div>
 
-      {/* Bottom status note */}
-      <div className="text-center pb-4">
-        <p className="text-[11px] text-slate-400 font-medium">
-          SecureScan AI Engine • Encrypted processing
+      <div className="text-center pb-4 border-t border-slate-200/50 pt-4 mt-6">
+        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
+          System Processing
         </p>
       </div>
     </div>

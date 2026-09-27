@@ -1,10 +1,15 @@
 import axios from 'axios';
 import { DocumentType, ExtractedField, VerificationResult, AadhaarEkycData } from '@/types';
 
-// Future FastAPI Backend URL
+// Bypass Pinggy interstitial screen on automated API requests
+if (typeof axios !== 'undefined') {
+  axios.defaults.headers.common['X-Pinggy-No-Screen'] = '1';
+}
+
+// Backend URL (relative in browser to route through Next.js rewrite proxy, direct on server)
 const API_BASE_URL = typeof window !== 'undefined' 
-  ? `${window.location.protocol}//${window.location.hostname}:8000` 
-  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+  ? '' 
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000');
 
 export interface TamperingResult {
   tampered: boolean;
@@ -176,27 +181,57 @@ function parseOcrText(rawText: string, docType: DocumentType): Record<string, Ex
 export async function ocr(
   image: Blob | string,
   docType: DocumentType,
-  isSuspicious: boolean = false
+  isSuspicious: boolean = false,
+  enginePref: string = 'auto'
 ): Promise<Record<string, ExtractedField>> {
-  // 1. Try FastAPI Backend endpoint first if accessible
+  // 1. Try Backend OCR Engine endpoint with real image payload
   try {
     const formData = new FormData();
+
     if (image instanceof Blob) {
-      formData.append('file', image);
-    } else {
+      formData.append('file', image, 'document.jpg');
+    } else if (typeof image === 'string' && image.startsWith('data:image/')) {
+      // Convert base64 Data URL to real binary Blob for backend Python models
+      const [header, base64Data] = image.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const binaryStr = atob(base64Data);
+      const len = binaryStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mime });
+      formData.append('file', blob, 'document.jpg');
+    } else if (typeof image === 'string' && image.startsWith('http')) {
       formData.append('image_url', image);
+    } else if (typeof image === 'string' && image.startsWith('/')) {
+      // Local sample path - fetch as blob if in browser
+      try {
+        const sampleRes = await fetch(image);
+        const sampleBlob = await sampleRes.blob();
+        formData.append('file', sampleBlob, 'sample.svg');
+      } catch {
+        formData.append('image_url', image);
+      }
+    } else {
+      formData.append('image_url', String(image));
     }
     formData.append('document_type', docType);
+    formData.append('engine_pref', enginePref);
 
     const response = await axios.post(`${API_BASE_URL}/api/ocr`, formData, {
-      timeout: 1500,
-      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000, // 120s timeout to allow deep learning OCR models to download & execute
+      headers: { 
+        'Content-Type': 'multipart/form-data',
+        'X-Pinggy-No-Screen': '1'
+      },
     });
-    if (response.data && response.data.fields) {
+    if (response.data && response.data.fields && Object.keys(response.data.fields).length > 0) {
+      console.log('Backend real OCR extraction response:', response.data);
       return response.data.fields;
     }
-  } catch {
-    // Backend offline; continue to in-browser Tesseract OCR
+  } catch (err: any) {
+    console.warn('Backend OCR call error, falling back:', err.message);
   }
 
   // 2. Run client-side Tesseract.js OCR on real captured/scanned image
@@ -217,13 +252,6 @@ export async function ocr(
 
   if (docType === 'passport') {
     baseFields = {
-      name: {
-        key: 'name',
-        label: 'Name',
-        value: 'Rahul Sharma',
-        confidence: 99,
-        editable: true,
-      },
       passportNumber: {
         key: 'passportNumber',
         label: 'Passport Number',
@@ -231,89 +259,96 @@ export async function ocr(
         confidence: 99,
         editable: true,
       },
-      nationality: {
-        key: 'nationality',
-        label: 'Nationality',
-        value: 'Indian',
-        confidence: 98,
+      name: {
+        key: 'name',
+        label: 'Name',
+        value: 'Rahul Sharma',
+        confidence: 99,
         editable: true,
       },
       dateOfBirth: {
         key: 'dateOfBirth',
-        label: 'Date of Birth',
+        label: 'DOB',
         value: '14/03/2003',
         confidence: 97,
         editable: true,
       },
-      gender: {
-        key: 'gender',
-        label: 'Gender',
-        value: 'Male',
-        confidence: 99,
+      dateOfIssue: {
+        key: 'dateOfIssue',
+        label: 'Date of Issue',
+        value: '23/08/2022',
+        confidence: 96,
         editable: true,
       },
-      expiryDate: {
-        key: 'expiryDate',
-        label: 'Expiry Date',
+      dateOfExpiry: {
+        key: 'dateOfExpiry',
+        label: 'Date of Expiry',
         value: '22/08/2032',
         confidence: 98,
+        editable: true,
+      },
+      placeOfIssue: {
+        key: 'placeOfIssue',
+        label: 'Place of Issue',
+        value: 'Delhi',
+        confidence: 98,
+        editable: true,
+      },
+      address: {
+        key: 'address',
+        label: 'Address',
+        value: 'Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
+        confidence: 95,
+        editable: true,
+      },
+      mrzCode: {
+        key: 'mrzCode',
+        label: 'MRZZ Code',
+        value: 'P<INDSHARMA<<RAHUL<<<<<<<<<<<<<<<<<<<<<<<<<<\\nA1234567<8IND0303140M3208229<<<<<<<<<<<<<<<2',
+        confidence: 99,
         editable: true,
       },
     };
   } else if (docType === 'driving_license') {
     baseFields = {
-      dlNumber: {
-        key: 'dlNumber',
-        label: 'Licence Number',
+      licenseNumber: {
+        key: 'licenseNumber',
+        label: 'License Number',
         value: 'DL-0420110012345',
         confidence: 99,
         editable: true,
       },
       name: {
         key: 'name',
-        label: 'Holder Name',
+        label: 'Name',
         value: 'Rahul Sharma',
         confidence: 99,
         editable: true,
       },
-      fatherName: {
-        key: 'fatherName',
-        label: "Father's Name",
-        value: 'Ramesh Sharma',
+      dateOfIssue: {
+        key: 'dateOfIssue',
+        label: 'Date of Issue',
+        value: '14/03/2023',
         confidence: 98,
         editable: true,
       },
-      dateOfBirth: {
-        key: 'dateOfBirth',
-        label: 'Date of Birth',
-        value: '14/03/2003',
-        confidence: 97,
-        editable: true,
-      },
-      bloodGroup: {
-        key: 'bloodGroup',
-        label: 'Blood Group',
-        value: 'O+ (Positive)',
-        confidence: 99,
-        editable: true,
-      },
-      validity: {
-        key: 'validity',
-        label: 'Validity (NT)',
+      dateOfExpiry: {
+        key: 'dateOfExpiry',
+        label: 'Date of Expiry',
         value: '13/03/2043',
         confidence: 98,
         editable: true,
       },
-      vehicleClass: {
-        key: 'vehicleClass',
-        label: 'Class of Vehicle',
-        value: 'MCWG, LMV',
-        confidence: 99,
+      placeOfIssue: {
+        key: 'placeOfIssue',
+        label: 'Place of Issue',
+        value: 'Delhi RTO',
+        confidence: 95,
         editable: true,
       },
       address: {
         key: 'address',
-        label: 'Permanent Address',
+        label: 'Address',
         value: 'H.No 42, Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
         confidence: 97,
         editable: true,
@@ -359,23 +394,9 @@ export async function ocr(
         confidence: 94,
         editable: true,
       },
-      dateOfBirth: {
-        key: 'dateOfBirth',
-        label: 'Date of Birth',
-        value: '14/03/1990',
-        confidence: 76,
-        editable: true,
-      },
-      gender: {
-        key: 'gender',
-        label: 'Gender',
-        value: 'Male',
-        confidence: 98,
-        editable: true,
-      },
-      maskedAadhaar: {
-        key: 'maskedAadhaar',
-        label: 'Masked Aadhaar Number',
+      aadharNo: {
+        key: 'aadharNo',
+        label: 'Aadhaar No',
         value: 'XXXX XXXX 7821',
         confidence: 92,
         editable: true,
@@ -398,23 +419,9 @@ export async function ocr(
         confidence: 99,
         editable: true,
       },
-      dateOfBirth: {
-        key: 'dateOfBirth',
-        label: 'Date of Birth',
-        value: '14/03/2003',
-        confidence: 97,
-        editable: true,
-      },
-      gender: {
-        key: 'gender',
-        label: 'Gender',
-        value: 'Male',
-        confidence: 99,
-        editable: true,
-      },
-      maskedAadhaar: {
-        key: 'maskedAadhaar',
-        label: 'Masked Aadhaar Number',
+      aadharNo: {
+        key: 'aadharNo',
+        label: 'Aadhaar No',
         value: 'XXXX XXXX 7821',
         confidence: 99,
         editable: true,
@@ -599,7 +606,7 @@ export function calculateRisk(
     }
 
     return {
-      riskLevel: 'HIGH RISK',
+      riskLevel: 'REVIEW REQUIRED',
       riskScore: score,
       explanation: isEkycSkipped
         ? 'Potential document alteration detected and eKYC was skipped. Manual verification required.'
@@ -609,12 +616,10 @@ export function calculateRisk(
     };
   }
 
-  // When eKYC is skipped, overall score and risk factor are affected:
-  // Risk score increases from ~18-28 to ~42-48, elevating risk level to MEDIUM RISK.
   const score = isEkycSkipped
     ? Math.round(42 + Math.random() * 8)
     : Math.round(18 + Math.random() * 10);
-  const riskLevel: VerificationResult['riskLevel'] = isEkycSkipped ? 'MEDIUM RISK' : 'LOW RISK';
+  const riskLevel: VerificationResult['riskLevel'] = isEkycSkipped ? 'REVIEW REQUIRED' : 'ACCEPTED';
 
   const checks: VerificationResult['checks'] = [
     {
@@ -665,7 +670,7 @@ export function calculateRisk(
     riskLevel,
     riskScore: score,
     explanation: isEkycSkipped
-      ? 'Document scan passed, but Aadhaar eKYC was skipped. Overall risk factor increased to MEDIUM RISK due to unverified demographic records.'
+      ? 'Document scan passed, but Aadhaar eKYC was skipped. Overall risk factor increased to REVIEW REQUIRED due to unverified demographic records.'
       : 'Document appears valid based on the available verification checks.',
     checks,
     timestamp,

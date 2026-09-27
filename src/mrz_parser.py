@@ -51,6 +51,18 @@ class MRZParser:
         if line2.startswith(('P<', 'V<')) and not line1.startswith(('P<', 'V<')):
             line1, line2 = line2, line1
 
+        # Repair line2 if it starts with digits instead of standard letter prefix (e.g. 1234567< instead of A1234567<)
+        if re.match(r'^\d{6,8}<', line2):
+            # Check if raw_text contains a passport number matching [A-Z] + line2's digits
+            prefix_match = re.search(r'\b([A-Z])' + re.escape(line2[:7]), raw_text)
+            if prefix_match:
+                line2 = prefix_match.group(1) + line2
+            else:
+                # Generic Indian passport check: if raw_text has [A-Z]\d{7}
+                p_match = re.search(r'\b([A-PR-WYa-pr-wy])\d{7}\b', raw_text)
+                if p_match:
+                    line2 = p_match.group(1).upper() + line2
+
         line1 = line1.ljust(44, '<')[:44]
         line2 = line2.ljust(44, '<')[:44]
 
@@ -67,9 +79,9 @@ class MRZParser:
                 "given_name": fields.given_names.replace('<', ' ').strip(),
                 "passport_number": fields.document_number.replace('<', ''),
                 "nationality": fields.nationality,
-                "dob": cls._format_mrz_date(fields.birth_date),
+                "dob": cls._format_mrz_date(fields.birth_date, is_expiry=False),
                 "sex": fields.sex,
-                "expiry_date": cls._format_mrz_date(fields.expiry_date),
+                "expiry_date": cls._format_mrz_date(fields.expiry_date, is_expiry=True),
                 "mrz_checksum_valid": bool(checker.verify()),
                 "mrz_raw": [line1, line2]
             }
@@ -103,19 +115,22 @@ class MRZParser:
             "given_name": given_name,
             "passport_number": doc_num,
             "nationality": nat,
-            "dob": cls._format_mrz_date(raw_dob),
+            "dob": cls._format_mrz_date(raw_dob, is_expiry=False),
             "sex": sex,
-            "expiry_date": cls._format_mrz_date(raw_exp),
+            "expiry_date": cls._format_mrz_date(raw_exp, is_expiry=True),
             "mrz_checksum_valid": True,
             "mrz_raw": [line1, line2]
         }
 
     @staticmethod
-    def _format_mrz_date(yymmdd: str) -> str:
+    def _format_mrz_date(yymmdd: str, is_expiry: bool = False) -> str:
         """Converts YYMMDD MRZ date format into standard DD/MM/YYYY format."""
         if not yymmdd or len(yymmdd) != 6 or not yymmdd.isdigit():
             return yymmdd
 
         yy, mm, dd = int(yymmdd[:2]), yymmdd[2:4], yymmdd[4:6]
-        year = 1900 + yy if yy > 30 else 2000 + yy
+        if is_expiry:
+            year = 2000 + yy if yy < 80 else 1900 + yy
+        else:
+            year = 1900 + yy if yy > 25 else 2000 + yy
         return f"{dd}/{mm}/{year}"

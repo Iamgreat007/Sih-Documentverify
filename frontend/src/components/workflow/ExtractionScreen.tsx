@@ -6,78 +6,42 @@ import {
   ArrowRight,
   CheckCircle2,
   Edit2,
-  Sparkles,
   AlertTriangle,
-  CreditCard,
   BookOpen,
-  Car,
   FileText,
   XCircle,
+  Home,
+  Building,
+  Briefcase,
+  Calculator,
+  User,
+  Plane,
+  ScanLine
 } from 'lucide-react';
 import { DocChecklistEntry } from '@/components/workflow/DocumentTypeScreen';
 import { CapturedDoc } from '@/components/scanner/WebCamScanner';
 
-// ── Doc metadata ─────────────────────────────────────────────────────
 const DOC_META: Record<string, {
   label: string;
   shortLabel: string;
   icon: React.ReactNode;
-  accent: { tab: string; ring: string; badge: string; img: string };
 }> = {
-  aadhaar: {
-    label: 'Aadhaar Card',
-    shortLabel: 'Aadhaar',
-    icon: <CreditCard className="w-3.5 h-3.5" />,
-    accent: {
-      tab:   'bg-emerald-600 text-white',
-      ring:  'border-emerald-500 ring-emerald-500/20',
-      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      img:   'border-emerald-200',
-    },
-  },
-  driving_license: {
-    label: 'Driving Licence',
-    shortLabel: 'DL',
-    icon: <Car className="w-3.5 h-3.5" />,
-    accent: {
-      tab:   'bg-amber-500 text-white',
-      ring:  'border-amber-400 ring-amber-400/20',
-      badge: 'bg-amber-50 text-amber-700 border-amber-200',
-      img:   'border-amber-200',
-    },
-  },
-  passport: {
-    label: 'Passport',
-    shortLabel: 'Passport',
-    icon: <BookOpen className="w-3.5 h-3.5" />,
-    accent: {
-      tab:   'bg-blue-600 text-white',
-      ring:  'border-blue-500 ring-blue-500/20',
-      badge: 'bg-blue-50 text-blue-700 border-blue-200',
-      img:   'border-blue-200',
-    },
-  },
-  visa: {
-    label: 'Visa',
-    shortLabel: 'Visa',
-    icon: <FileText className="w-3.5 h-3.5" />,
-    accent: {
-      tab:   'bg-teal-600 text-white',
-      ring:  'border-teal-500 ring-teal-500/20',
-      badge: 'bg-teal-50 text-teal-700 border-teal-200',
-      img:   'border-teal-200',
-    },
-  },
+  passport: { label: 'Passport', shortLabel: 'Passport', icon: <BookOpen className="w-3.5 h-3.5" /> },
+  proof_of_address: { label: 'Proof of Address', shortLabel: 'Address', icon: <Home className="w-3.5 h-3.5" /> },
+  bank_statement: { label: 'Bank Statement', shortLabel: 'Bank', icon: <Building className="w-3.5 h-3.5" /> },
+  employment_letter: { label: 'Employment Letter', shortLabel: 'Employment', icon: <Briefcase className="w-3.5 h-3.5" /> },
+  tax_documents: { label: 'Tax Documents', shortLabel: 'Tax', icon: <Calculator className="w-3.5 h-3.5" /> },
+  birth_certificate: { label: 'Birth Certificate', shortLabel: 'Birth Cert', icon: <User className="w-3.5 h-3.5" /> },
+  visa: { label: 'Visa', shortLabel: 'Visa', icon: <Plane className="w-3.5 h-3.5" /> },
+  residence_permit: { label: 'Residence Permit', shortLabel: 'Residence', icon: <FileText className="w-3.5 h-3.5" /> },
 };
 
-// ── Props ─────────────────────────────────────────────────────────────
 interface ExtractionScreenProps {
   documentType: DocumentType;
   fileName: string;
   documentImage: string;
   backImage?: string;
   initialFields: Record<string, ExtractedField>;
-  // Multi-doc session
   sessionChecklist?: DocChecklistEntry[];
   allDocFields?: Record<string, Record<string, ExtractedField>>;
   sessionDocs?: CapturedDoc[];
@@ -85,15 +49,12 @@ interface ExtractionScreenProps {
   onProceedToVerification: (updatedFields: Record<string, ExtractedField>) => void;
 }
 
-// ── Editable fields panel ─────────────────────────────────────────────
 function FieldsPanel({
   fields,
   onUpdate,
-  accent,
 }: {
   fields: Record<string, ExtractedField>;
   onUpdate: (updated: Record<string, ExtractedField>) => void;
-  accent: typeof DOC_META.aadhaar.accent;
 }) {
   const [localFields, setLocalFields] = useState(fields);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -117,21 +78,19 @@ function FieldsPanel({
         return (
           <div
             key={key}
-            className={`bg-white rounded-2xl p-3 border transition-all ${
-              isEditing
-                ? `${accent.ring} border-2 ring-2 shadow-sm`
-                : 'border-slate-200/90 shadow-xs'
+            className={`bg-white rounded-md p-3 border transition-colors ${
+              isEditing ? 'border-blue-700' : 'border-slate-200'
             }`}
           >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-semibold text-slate-500">{field.label}</span>
-              <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                highConf ? accent.badge : 'bg-amber-50 text-amber-700 border-amber-200'
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium text-slate-500">{field.label}</span>
+              <div className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                highConf ? 'bg-slate-50 text-slate-700 border-slate-200' : 'bg-rose-50 text-rose-700 border-rose-200'
               }`}>
                 {highConf
-                  ? <CheckCircle2 className="w-3 h-3" />
-                  : <AlertTriangle className="w-3 h-3 text-amber-600" />}
-                {field.confidence}%
+                  ? <CheckCircle2 className="w-3 h-3 text-slate-400" />
+                  : <AlertTriangle className="w-3 h-3 text-rose-500" />}
+                {field.confidence}% match
               </div>
             </div>
 
@@ -144,18 +103,18 @@ function FieldsPanel({
                   onChange={(e) => handleChange(key, e.target.value)}
                   onBlur={() => setEditingKey(null)}
                   onKeyDown={(e) => { if (e.key === 'Enter') setEditingKey(null); }}
-                  className="flex-1 px-2.5 py-1 rounded-lg border border-emerald-500 font-semibold text-xs text-slate-900 focus:outline-none"
+                  className="flex-1 px-2.5 py-1.5 rounded border border-blue-500 font-mono text-xs text-slate-900 focus:outline-none"
                 />
                 <button type="button" onClick={() => setEditingKey(null)}
-                  className="text-xs font-bold text-emerald-600 px-2 py-1 hover:bg-emerald-50 rounded">
+                  className="text-xs font-medium text-blue-700 px-3 py-1.5 hover:bg-slate-50 border border-slate-200 rounded">
                   Done
                 </button>
               </div>
             ) : (
               <div onClick={() => setEditingKey(key)}
                 className="flex items-center justify-between cursor-pointer group py-0.5">
-                <span className="text-xs font-bold text-slate-900 leading-snug">{field.value}</span>
-                <Edit2 className="w-3.5 h-3.5 text-slate-400 opacity-60 group-hover:opacity-100 group-hover:text-emerald-600 transition ml-2 flex-shrink-0" />
+                <span className="text-sm font-medium text-slate-900 leading-snug">{field.value}</span>
+                <Edit2 className="w-3.5 h-3.5 text-slate-400 opacity-60 group-hover:opacity-100 group-hover:text-blue-700 transition ml-2 flex-shrink-0" />
               </div>
             )}
           </div>
@@ -165,7 +124,6 @@ function FieldsPanel({
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────
 export default function ExtractionScreen({
   documentType,
   fileName,
@@ -179,24 +137,19 @@ export default function ExtractionScreen({
   onProceedToVerification,
 }: ExtractionScreenProps) {
 
-  // Build the tab list from checklist (only scanned docs)
   const scannedEntries = sessionChecklist.filter(e => e.status === 'scanned');
   const naEntries      = sessionChecklist.filter(e => e.status === 'na');
 
-  // If no checklist provided, fall back to single-doc mode
   const tabDocs = scannedEntries.length > 0
     ? scannedEntries
     : [{ docType: documentType, status: 'scanned' as const, fileName }];
 
-  // Active tab
   const [activeDocType, setActiveDocType] = useState<DocumentType>(
     tabDocs[0]?.docType || documentType
   );
 
-  // Per-doc field overrides (user edits)
   const [fieldOverrides, setFieldOverrides] = useState<Record<string, Record<string, ExtractedField>>>({});
 
-  // Merged fields for active tab
   const getFields = (dt: DocumentType): Record<string, ExtractedField> => {
     const base = allDocFields[dt] || (dt === documentType ? initialFields : {});
     return { ...(base || {}), ...(fieldOverrides[dt] || {}) };
@@ -216,7 +169,6 @@ export default function ExtractionScreen({
   const activeFields  = getFields(activeDocType);
   const fieldCount    = Object.keys(activeFields).length;
 
-  // Find scan images for active doc
   const frontDoc = sessionDocs.find(d => d.docType === activeDocType && (d.side === 'front' || d.side === 'single'));
   const backDoc  = sessionDocs.find(d => d.docType === activeDocType && d.side === 'back');
   const frontImg = frontDoc?.processedImage || frontDoc?.rawImage || documentImage;
@@ -226,28 +178,21 @@ export default function ExtractionScreen({
 
   return (
     <div className="flex flex-col h-full bg-slate-50 text-slate-900 select-none">
-
-      {/* ── Top Bar ── */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-200 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 flex-shrink-0">
         <button type="button" onClick={onBack}
-          className="p-1 -ml-1 text-slate-600 hover:text-slate-900 flex items-center gap-1 text-xs font-semibold">
+          className="text-slate-600 hover:text-slate-900 flex items-center gap-1 text-sm font-medium">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
         <div className="text-center">
-          <h2 className="text-sm font-bold text-slate-900">Extracted Information</h2>
-          <p className="text-[10px] text-slate-500">
-            {tabDocs.length} doc{tabDocs.length !== 1 ? 's' : ''} scanned
-            {naEntries.length > 0 ? ` · ${naEntries.length} N/A` : ''}
-          </p>
+          <h2 className="text-sm font-semibold text-slate-900">Extracted Data</h2>
         </div>
-        <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200 max-w-[80px] truncate">
+        <span className="text-xs font-mono font-medium text-slate-600 truncate max-w-[80px]">
           {activeEntry?.fileName || fileName}
         </span>
       </div>
 
-      {/* ── Doc Tabs ── */}
       {tabDocs.length > 1 && (
-        <div className="flex-shrink-0 px-3 py-2 bg-white border-b border-slate-100 flex gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="flex-shrink-0 px-4 py-2.5 bg-white border-b border-slate-200 flex gap-2 overflow-x-auto scrollbar-none">
           {tabDocs.map((entry) => {
             const m = DOC_META[entry.docType] ?? DOC_META.passport;
             const isActive = activeDocType === entry.docType;
@@ -255,15 +200,15 @@ export default function ExtractionScreen({
             return (
               <button key={entry.docType} type="button"
                 onClick={() => { setActiveDocType(entry.docType as DocumentType); setActiveSide('front'); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap flex-shrink-0 transition border ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap flex-shrink-0 transition border ${
                   isActive
-                    ? `${m.accent.tab} border-transparent shadow-sm`
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ? 'bg-blue-700 text-white border-blue-700'
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}>
                 {m.icon}
                 {m.shortLabel}
-                <span className={`text-[9px] px-1 py-0.5 rounded-full font-black ${
-                  isActive ? 'bg-white/30' : 'bg-slate-100 text-slate-500'
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                  isActive ? 'bg-blue-800 text-blue-100' : 'bg-slate-100 text-slate-500'
                 }`}>
                   {fCount}
                 </span>
@@ -271,34 +216,30 @@ export default function ExtractionScreen({
             );
           })}
 
-          {/* N/A docs shown as muted pills */}
           {naEntries.map((entry) => {
             const m = DOC_META[entry.docType] ?? DOC_META.passport;
             return (
               <div key={entry.docType}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold whitespace-nowrap flex-shrink-0 bg-slate-100 text-slate-400 border border-slate-200 opacity-60">
-                <XCircle className="w-3 h-3 text-rose-400" />
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap flex-shrink-0 bg-slate-50 text-slate-400 border border-slate-200 opacity-70">
+                <XCircle className="w-3.5 h-3.5 text-slate-400" />
                 {m.shortLabel}
-                <span className="text-[9px] text-rose-400 font-bold">N/A</span>
+                <span className="text-[10px] text-slate-400 font-semibold">Missing</span>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-
-        {/* Document image preview */}
-        <div className="w-full bg-white rounded-2xl p-2.5 border border-slate-200 shadow-xs">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="w-full bg-white rounded-lg p-3 border border-slate-200">
           {backImg && (
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Preview Source</span>
-              <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg text-[10px] font-bold">
+            <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+              <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Document Scan</span>
+              <div className="flex gap-1 bg-slate-100 p-1 rounded-md text-[10px] font-semibold">
                 {(['front', 'back'] as const).map(s => (
                   <button key={s} type="button" onClick={() => setActiveSide(s)}
-                    className={`px-2 py-0.5 rounded capitalize transition ${
-                      activeSide === s ? 'bg-white text-slate-950 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                    className={`px-2.5 py-1 rounded capitalize transition ${
+                      activeSide === s ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-900'
                     }`}>
                     {s}
                   </button>
@@ -306,53 +247,48 @@ export default function ExtractionScreen({
               </div>
             </div>
           )}
-          <div className={`relative w-full rounded-xl overflow-hidden border ${activeMeta.accent.img}`}>
+          <div className="relative w-full rounded bg-slate-50 border border-slate-200 p-2">
             <img
               src={activeSide === 'back' && backImg ? backImg : frontImg}
               alt="Document source"
               className="w-full h-32 object-contain"
             />
-            <div className="absolute top-2 left-2 bg-slate-950/70 text-white text-[9px] font-medium px-2 py-0.5 rounded flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
-              OCR Frame — {activeMeta.shortLabel} {activeSide.toUpperCase()}
+            <div className="absolute top-2 left-2 bg-slate-900/70 text-white text-[10px] font-medium px-2 py-0.5 rounded flex items-center gap-1.5">
+              <ScanLine className="w-3 h-3 text-white/70" />
+              OCR Reference
             </div>
           </div>
         </div>
 
-        {/* Fields header */}
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-            AI Extracted Fields
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+            Extracted Data
           </span>
           <div className="flex items-center gap-1.5">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${activeMeta.accent.badge}`}>
+            <span className="text-[10px] font-semibold text-slate-600 bg-slate-200 px-2 py-0.5 rounded border border-slate-300">
               {fieldCount} fields
             </span>
-            <span className="text-[10px] text-slate-400">Tap to edit</span>
           </div>
         </div>
 
-        {/* No fields fallback */}
         {fieldCount === 0 ? (
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 text-center text-slate-400">
-            <Sparkles className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p className="text-xs font-semibold">No fields extracted yet</p>
+          <div className="bg-white rounded-lg p-6 border border-slate-200 text-center text-slate-500">
+            <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+            <p className="text-sm font-medium">No fields extracted</p>
           </div>
         ) : (
           <FieldsPanel
             key={activeDocType}
             fields={activeFields}
             onUpdate={(updated) => handleUpdate(activeDocType as DocumentType, updated)}
-            accent={activeMeta.accent}
           />
         )}
       </div>
 
-      {/* ── Bottom CTA ── */}
       <div className="flex-shrink-0 p-4 bg-white border-t border-slate-200">
         <button type="button" onClick={handleProceed}
-          className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-500 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-98">
-          <span>Proceed to Verification</span>
+          className="w-full py-2.5 rounded-md bg-blue-700 text-white font-medium text-sm hover:bg-blue-800 transition flex items-center justify-center gap-2">
+          <span>Verify Document</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

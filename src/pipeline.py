@@ -27,7 +27,7 @@ class DocumentPipeline:
         os.makedirs(self.output_dir, exist_ok=True)
         self.ocr_engine = OCREngine()
 
-    def process_file(self, file_path: str) -> List[Dict[str, Any]]:
+    def process_file(self, file_path: str, engine_pref: str = "auto") -> List[Dict[str, Any]]:
         """
         Processes an image or PDF document and saves output JSON.
         Returns list of structured document extraction results.
@@ -39,19 +39,27 @@ class DocumentPipeline:
         filename_base = os.path.splitext(os.path.basename(file_path))[0]
 
         for page_num, raw_image in pages:
-            # Step 2: Image Quality Enhancement (Perspective Transform + CLAHE + Sharpening)
+            # Step 2: Image Quality Enhancement (for orientation and classification)
             prep_dict = ImagePreprocessor.preprocess_for_ocr(raw_image)
             enhanced_bgr = prep_dict["color_enhanced"]
             gray_ocr = prep_dict["gray"]
 
             # Step 3: Orientation & Skew Auto-Correction
-            corrected_img, orientation_corrected, total_rotation_angle = OrientationCorrector.correct_orientation(gray_ocr)
+            # We use gray_ocr to detect the angle, but we rotate the ORIGINAL raw_image!
+            from src.processor import _rotate_image # Use rotation function from processor
+            _, orientation_corrected, total_rotation_angle = OrientationCorrector.correct_orientation(gray_ocr)
+            
+            if abs(total_rotation_angle) > 0:
+                color_for_ocr = _rotate_image(raw_image, total_rotation_angle)
+            else:
+                color_for_ocr = raw_image
 
             # Step 4: QR Code Decoding & Tampering Detection
             qr_info = QRDecoder.decode_qr(raw_image)
 
             # Step 5: Multi-Engine OCR Extraction (PaddleOCR + Tesseract Fallback)
-            ocr_output = self.ocr_engine.extract_text(corrected_img)
+            # Send the clean, original color image to the OCR engine!
+            ocr_output = self.ocr_engine.extract_text(color_for_ocr, engine_pref=engine_pref)
             raw_ocr_text = ocr_output["raw_text"]
             text_blocks = ocr_output["text_blocks"]
             ocr_confidence = ocr_output["confidence_score"]
@@ -231,8 +239,13 @@ class DocumentPipeline:
             if front_pages:
                 front_img = front_pages[0][1]
                 prep_dict = ImagePreprocessor.preprocess_for_ocr(front_img)
-                corrected_img, _, _ = OrientationCorrector.correct_orientation(prep_dict["gray"])
-                ocr_out = self.ocr_engine.extract_text(corrected_img)
+                corrected_img, _, total_rotation_angle = OrientationCorrector.correct_orientation(prep_dict["gray"])
+                if abs(total_rotation_angle) > 0:
+                    from src.processor import _rotate_image
+                    color_for_ocr = _rotate_image(front_img, total_rotation_angle)
+                else:
+                    color_for_ocr = front_img
+                ocr_out = self.ocr_engine.extract_text(color_for_ocr)
                 raw_text = ocr_out["raw_text"]
                 text_blocks = ocr_out["text_blocks"]
 
@@ -269,10 +282,15 @@ class DocumentPipeline:
             if back_pages:
                 back_img = back_pages[0][1]
                 prep_dict = ImagePreprocessor.preprocess_for_ocr(back_img)
-                corrected_img, _, _ = OrientationCorrector.correct_orientation(prep_dict["gray"])
+                corrected_img, _, total_rotation_angle_back = OrientationCorrector.correct_orientation(prep_dict["gray"])
                 
                 qr_info = QRDecoder.decode_qr(back_img)
-                ocr_out = self.ocr_engine.extract_text(corrected_img)
+                if abs(total_rotation_angle_back) > 0:
+                    from src.processor import _rotate_image
+                    color_for_ocr_back = _rotate_image(back_img, total_rotation_angle_back)
+                else:
+                    color_for_ocr_back = back_img
+                ocr_out = self.ocr_engine.extract_text(color_for_ocr_back)
                 raw_text = ocr_out["raw_text"]
                 text_blocks = ocr_out["text_blocks"]
 

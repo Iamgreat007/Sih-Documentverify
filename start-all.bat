@@ -1,34 +1,29 @@
 @echo off
+title Starting SecureScan AI System
 echo =======================================================
 echo          Starting SecureScan AI System
 echo =======================================================
 
 echo.
-echo [1/3] Starting Java Face Recognition Service...
-start "Java Face Recognition Service (Port 8080)" cmd /k "cd facerecognition && .\mvnw spring-boot:run"
+REM echo [1/3] Starting Java Face Recognition Service (Port 8080)...
+REM start "Java Face Recognition Service (Port 8080)" cmd /k "cd /d "%~dp0facerecognition" && .\mvnw spring-boot:run"
 
 echo.
-echo [2/3] Starting Django Backend...
-start "Django Backend API (Port 8000)" cmd /k "cd django_backend && ..\venv-django\Scripts\activate && python manage.py runserver 0.0.0.0:8000"
-echo [2/3] Checking and Starting Django Backend API...
-start "Django Backend API (Port 8000)" cmd /k "if not exist venv-django (echo Creating virtual environment... && python -m venv venv-django && .\venv-django\Scripts\activate && pip install -r requirements.txt && cd django_backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000) else (.\venv-django\Scripts\activate && cd django_backend && python manage.py runserver 0.0.0.0:8000)"
+echo [2/3] Starting Django Backend API (Port 8000)...
+start "Django Backend API (Port 8000)" cmd /k "cd /d "%~dp0" && if exist venv-django\Scripts\activate.bat (call venv-django\Scripts\activate.bat) && cd django_backend && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
 
 echo.
-echo [3/3] Starting Next.js Frontend...
-start "Next.js Frontend (Port 3000)" cmd /k "cd frontend && npm run dev"
-echo [3/3] Checking and Starting Next.js Frontend...
-start "Next.js Frontend (Port 3000)" cmd /k "cd frontend && if not exist node_modules (echo Installing NPM dependencies... && npm install && npm run dev) else (npm run dev)"
+echo [3/3] Starting Next.js Frontend (Port 3000)...
+start "Next.js Frontend (Port 3000)" cmd /k "cd /d "%~dp0frontend" && if not exist node_modules (echo Installing NPM dependencies... && npm install) && npm run dev"
 
 echo.
 echo =======================================================
-echo All services are starting up in separate windows!
+echo All services are starting up!
 echo.
-echo TO VIEW ON MOBILE PHONE:
-echo 1. Ensure your phone and PC are on the same Wi-Fi network.
-echo 2. Open Command Prompt, type 'ipconfig' and find your IPv4 Address.
-echo 3. On your phone browser, go to http://YOUR_IPV4_ADDRESS:3000
+echo TO VIEW ON MOBILE PHONE (Recommended):
+echo 1. Double-click 'start-pinggy-tunnel.bat'
+echo 2. Open the https://... URL shown in that window on your phone!
 echo.
-echo Have a great time!
+echo (Or if on same Wi-Fi: http://YOUR_PC_IP:3000)
 echo =======================================================
 pause
-
