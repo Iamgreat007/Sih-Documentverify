@@ -9,5 +9,5 @@ urlpatterns = [
     path('save-verified-user', views.save_verified_user_view, name='save_verified_user'),
     path('detect-corners', views.detect_corners_view, name='detect_corners'),
     path('scan-pro', views.scan_pro_view, name='scan_pro'),
+    path('history', views.history_view, name='history'),
 ]
-

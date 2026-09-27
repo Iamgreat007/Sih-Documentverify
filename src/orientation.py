@@ -40,7 +40,11 @@ class OrientationCorrector:
         try:
             rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             osd_data = pytesseract.image_to_osd(rgb, output_type=pytesseract.Output.DICT)
-            rotate = osd_data.get('rotate', 0)
+            conf = float(osd_data.get('orientation_conf', 0))
+            # Require high confidence (>= 5.0) to avoid false 180-degree flips on upright documents
+            if conf < 5.0:
+                return 0
+            rotate = int(osd_data.get('rotate', 0))
             return rotate
         except Exception:
             # If Tesseract OSD fails or missing binary, fallback to 0 degrees coarse angle

@@ -59,14 +59,35 @@ class OCREngine:
                 PADDLE_INSTANCE = None
         return PADDLE_INSTANCE
 
-    def extract_text(self, image: np.ndarray) -> Dict[str, Any]:
+    def extract_text(self, image: np.ndarray, engine_pref: str = "auto") -> Dict[str, Any]:
         """
-        Executes OCR on image array with multi-engine fallback.
+        Executes OCR on image array with multi-engine fallback or specific engine forced.
         """
         if len(image.shape) == 2:
             rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
         else:
             rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        # If specific engine requested, try ONLY that engine
+        if engine_pref == "paddleocr":
+            if PADDLEOCR_AVAILABLE:
+                res = self._run_paddleocr(rgb)
+                if len(res.get("raw_text", "").strip()) > 10:
+                    return res
+            return self._run_smart_fallback(rgb)
+
+        if engine_pref == "tesseract":
+            res = self._run_tesseract(rgb)
+            if len(res.get("raw_text", "").strip()) > 10:
+                return res
+            return self._run_smart_fallback(rgb)
+
+        if engine_pref == "easyocr":
+            if EASYOCR_AVAILABLE:
+                res = self._run_easyocr(rgb)
+                if len(res.get("raw_text", "").strip()) > 10:
+                    return res
+            return self._run_smart_fallback(rgb)
 
         # 1. Try PaddleOCR (Primary)
         if PADDLEOCR_AVAILABLE:
@@ -77,19 +98,19 @@ class OCREngine:
             except Exception:
                 pass
 
-        # 2. Try Tesseract OCR (Fallback 1)
-        tess_res = self._run_tesseract(rgb)
-        if tess_res.get("engine_used") == "tesseract" and len(tess_res.get("raw_text", "").strip()) > 10:
-            return tess_res
-
-        # 3. Try EasyOCR (Fallback 2)
+        # 2. Try EasyOCR (Fallback 1)
         if EASYOCR_AVAILABLE:
             try:
                 easy_res = self._run_easyocr(rgb)
-                if len(easy_res.get("raw_text", "").strip()) > 0:
+                if len(easy_res.get("raw_text", "").strip()) > 10:
                     return easy_res
             except Exception:
                 pass
+
+        # 3. Try Tesseract OCR (Fallback 2)
+        tess_res = self._run_tesseract(rgb)
+        if tess_res.get("engine_used") == "tesseract" and len(tess_res.get("raw_text", "").strip()) > 10:
+            return tess_res
 
         # 4. Smart Document Zone Text Extractor (Offline Fallback)
         return self._run_smart_fallback(rgb)

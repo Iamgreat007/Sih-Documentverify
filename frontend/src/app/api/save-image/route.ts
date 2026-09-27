@@ -11,8 +11,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No image data provided' }, { status: 400 });
     }
 
-    // Target folder: C:\Users\MSI-1\Desktop\SIH\image
-    const imageDir = path.resolve(process.cwd(), '..', 'image');
+    // Target folder: ./image or ../image if running inside frontend/
+    let imageDir = path.resolve(process.cwd(), 'image');
+    if (!fs.existsSync(imageDir)) {
+      const parentImageDir = path.resolve(process.cwd(), '..', 'image');
+      if (fs.existsSync(parentImageDir) || path.basename(process.cwd()) === 'frontend') {
+        imageDir = parentImageDir;
+      }
+    }
     if (!fs.existsSync(imageDir)) {
       fs.mkdirSync(imageDir, { recursive: true });
     }

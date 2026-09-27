@@ -5,60 +5,43 @@ import {
   RotateCcw,
   ArrowRight,
   Crop,
-  Sparkles,
   FolderCheck,
   X,
   ChevronLeft,
   ChevronRight,
   ZoomIn,
-  CreditCard,
   BookOpen,
-  Car,
   FileText,
   AlertTriangle,
+  Home,
+  Building,
+  Briefcase,
+  Calculator,
+  User,
+  Plane,
+  FileIcon
 } from 'lucide-react';
 import { CapturedDoc } from '@/components/scanner/WebCamScanner';
 
 interface ScanReviewScreenProps {
-  // Legacy single-image fallback (used if sessionDocs is empty)
   scannedImage: string;
   backImage?: string;
   savedFilePaths?: { front?: string; back?: string };
-  // Multi-doc session
   sessionDocs?: CapturedDoc[];
   onRetake: () => void;
   onAdjustCorners: () => void;
   onAcceptScan: () => void;
 }
 
-const DOC_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  aadhaar: {
-    label: 'Aadhaar',
-    color: 'emerald',
-    icon: <CreditCard className="w-3.5 h-3.5" />,
-  },
-  driving_license: {
-    label: 'Driving Licence',
-    color: 'amber',
-    icon: <Car className="w-3.5 h-3.5" />,
-  },
-  passport: {
-    label: 'Passport',
-    color: 'blue',
-    icon: <BookOpen className="w-3.5 h-3.5" />,
-  },
-  visa: {
-    label: 'Visa',
-    color: 'teal',
-    icon: <FileText className="w-3.5 h-3.5" />,
-  },
-};
-
-const COLOR_MAP: Record<string, string> = {
-  emerald: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  amber: 'bg-amber-100 text-amber-800 border-amber-300',
-  blue: 'bg-blue-100 text-blue-800 border-blue-300',
-  teal: 'bg-teal-100 text-teal-800 border-teal-300',
+const DOC_META: Record<string, { label: string; icon: React.ReactNode }> = {
+  passport: { label: 'Passport', icon: <BookOpen className="w-3.5 h-3.5" /> },
+  proof_of_address: { label: 'Proof of Address', icon: <Home className="w-3.5 h-3.5" /> },
+  bank_statement: { label: 'Bank Statement', icon: <Building className="w-3.5 h-3.5" /> },
+  employment_letter: { label: 'Employment Letter', icon: <Briefcase className="w-3.5 h-3.5" /> },
+  tax_documents: { label: 'Tax Documents', icon: <Calculator className="w-3.5 h-3.5" /> },
+  birth_certificate: { label: 'Birth Certificate', icon: <User className="w-3.5 h-3.5" /> },
+  visa: { label: 'Visa', icon: <Plane className="w-3.5 h-3.5" /> },
+  residence_permit: { label: 'Residence Permit', icon: <FileText className="w-3.5 h-3.5" /> },
 };
 
 export default function ScanReviewScreen({
@@ -72,10 +55,8 @@ export default function ScanReviewScreen({
 }: ScanReviewScreenProps) {
   const hasSession = sessionDocs.length > 0;
 
-  // Lightbox
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
-  // Editable filenames: keyed by doc id
   const [editableNames, setEditableNames] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -89,14 +70,12 @@ export default function ScanReviewScreen({
 
   const commitEdit = (id: string) => {
     setEditingId(null);
-    // Sanitize: spaces → underscore, only safe chars
     setEditableNames((p) => ({
       ...p,
       [id]: (p[id] || '').replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || p[id],
     }));
   };
 
-        // Build display list
   const displayDocs: { id: string; image: string; label: string; sublabel: string; path: string; isSuspicious: boolean; docType: string }[] =
     hasSession
       ? sessionDocs.map((d) => ({
@@ -116,7 +95,7 @@ export default function ScanReviewScreen({
             sublabel: savedFilePaths?.front || 'doc_front',
             path: savedFilePaths?.front || '',
             isSuspicious: false,
-            docType: 'aadhaar',
+            docType: 'passport',
           },
           ...(backImage
             ? [{
@@ -126,14 +105,13 @@ export default function ScanReviewScreen({
                 sublabel: savedFilePaths?.back || 'doc_back',
                 path: savedFilePaths?.back || '',
                 isSuspicious: false,
-                docType: 'aadhaar',
+                docType: 'passport',
               }]
             : []),
         ];
 
   const totalCount = displayDocs.length;
 
-  // Lightbox helpers
   const openLightbox = (i: number) => setLightboxIdx(i);
   const closeLightbox = () => setLightboxIdx(null);
   const prevLightbox = () =>
@@ -143,114 +121,94 @@ export default function ScanReviewScreen({
 
   return (
     <div className="flex flex-col h-full bg-slate-50 text-slate-900 select-none">
-      {/* ── Top Bar ── */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-200 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 flex-shrink-0">
         <button
           type="button"
           onClick={onRetake}
-          className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1"
+          className="text-sm font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1"
         >
           <RotateCcw className="w-4 h-4" />
           Retake
         </button>
         <div className="text-center">
-          <h2 className="text-sm font-bold text-slate-900">Review Scans</h2>
-          <p className="text-[10px] text-slate-500">
-            {totalCount} image{totalCount !== 1 ? 's' : ''} captured
-          </p>
+          <h2 className="text-sm font-semibold text-slate-900">Review Scans</h2>
         </div>
         <button
           type="button"
           onClick={onAdjustCorners}
-          className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+          className="text-sm font-medium text-blue-700 hover:text-blue-800 flex items-center gap-1"
         >
           <Crop className="w-4 h-4" />
           Adjust
         </button>
       </div>
 
-      {/* ── Scrollable Gallery ── */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
 
-        {/* Summary badge */}
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl px-3.5 py-2.5">
-          <FolderCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+        <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-lg px-3 py-3">
+          <FolderCheck className="w-4 h-4 text-slate-600 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-extrabold text-emerald-900">All images saved to ./image</p>
-            <p className="text-[10px] text-emerald-700 font-mono truncate">
+            <p className="text-xs font-semibold text-slate-900">Documents saved locally</p>
+            <p className="text-[10px] text-slate-500 font-mono truncate mt-0.5">
               {displayDocs.map(d => d.sublabel).join(' · ')}
             </p>
           </div>
-          <span className="flex-shrink-0 text-[10px] font-black text-emerald-700 bg-emerald-200 px-2 py-0.5 rounded-full">
-            {totalCount}
+          <span className="flex-shrink-0 text-[10px] font-bold text-slate-600 bg-slate-200 px-2 py-0.5 rounded">
+            {totalCount} item{totalCount !== 1 ? 's' : ''}
           </span>
         </div>
 
-        {/* Suspicious warning */}
         {displayDocs.some((d) => d.isSuspicious) && (
-          <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-2xl px-3.5 py-2.5">
-            <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-            <p className="text-[11px] font-semibold text-rose-800">
-              One or more documents flagged for tampering indicators — review carefully.
+          <div className="flex items-start gap-2 bg-slate-100 border border-slate-300 rounded-lg px-3 py-3">
+            <AlertTriangle className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs font-medium text-slate-700 leading-snug">
+              One or more documents flagged for potential anomalies. Please review carefully before proceeding.
             </p>
           </div>
         )}
 
-        {/* Document Grid */}
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-3">
           {displayDocs.map((doc, idx) => {
-            const meta = DOC_META[doc.docType] ?? DOC_META.passport;
-            const colorClass = COLOR_MAP[meta.color] ?? COLOR_MAP.emerald;
+            const meta = DOC_META[doc.docType] ?? { label: 'Document', icon: <FileIcon className="w-3.5 h-3.5" /> };
             return (
               <div
                 key={doc.id}
-                className={`relative rounded-2xl overflow-hidden border-2 bg-white shadow-sm text-left group transition ${
-                  doc.isSuspicious ? 'border-rose-400' : 'border-slate-200 hover:border-emerald-400'
+                className={`relative rounded-lg overflow-hidden border bg-white transition ${
+                  doc.isSuspicious ? 'border-slate-400' : 'border-slate-200 hover:border-blue-700'
                 }`}
               >
-                {/* Clickable image area → lightbox */}
                 <div
                   role="button"
                   tabIndex={0}
                   onClick={() => openLightbox(idx)}
                   onKeyDown={(e) => e.key === 'Enter' && openLightbox(idx)}
-                  className="w-full aspect-[4/3] overflow-hidden bg-slate-100 cursor-pointer relative"
+                  className="w-full aspect-[4/3] overflow-hidden bg-slate-100 cursor-pointer relative border-b border-slate-200"
                 >
                   <img
                     src={doc.image}
                     alt={doc.label}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    className="w-full h-full object-cover transition-opacity duration-200 hover:opacity-90"
                   />
-                  {/* Zoom hint overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 group-hover:bg-slate-900/30 transition-all duration-200 rounded-none">
-                    <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <div className="bg-slate-900/60 p-1.5 rounded text-white">
+                      <ZoomIn className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
 
-                {/* Badge */}
-                <div className="absolute top-1.5 left-1.5 pointer-events-none">
-                  <span className={`flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${colorClass}`}>
+                <div className="absolute top-2 left-2 pointer-events-none">
+                  <span className={`flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-white/90 backdrop-blur-none text-slate-700 border-slate-300`}>
                     {meta.icon}
-                    {doc.isSuspicious ? '⚠️' : ''}
+                    {doc.isSuspicious ? ' Review' : ''}
                   </span>
                 </div>
 
-                {/* Passed tick */}
-                {!doc.isSuspicious && (
-                  <div className="absolute top-1.5 right-1.5 pointer-events-none">
-                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shadow">
-                      <CheckCircle2 className="w-3 h-3 text-white" />
-                    </div>
-                  </div>
-                )}
-
-                {/* Label + Editable filename */}
-                <div className="p-2 bg-white border-t border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-900 truncate leading-tight mb-1">{doc.label}</p>
+                <div className="p-2 bg-white">
+                  <p className="text-xs font-medium text-slate-900 truncate mb-1.5">{doc.label}</p>
 
                   {editingId === doc.id ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[9px] text-slate-400 font-mono flex-shrink-0">📁</span>
+                    <div className="flex items-center gap-1.5">
+                      <FileIcon className="w-3 h-3 text-slate-400 flex-shrink-0" />
                       <input
                         autoFocus
                         type="text"
@@ -260,22 +218,19 @@ export default function ScanReviewScreen({
                         }
                         onBlur={() => commitEdit(doc.id)}
                         onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(doc.id); }}
-                        className="flex-1 text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-400 min-w-0"
+                        className="flex-1 text-[11px] font-mono text-slate-900 bg-white border border-slate-300 rounded px-1.5 py-1 focus:outline-none focus:border-blue-700 min-w-0"
                       />
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => startEdit(doc.id, doc.sublabel)}
-                      className="flex items-center gap-1 w-full group/fn hover:bg-slate-50 rounded px-0.5 -mx-0.5 transition"
+                      className="flex items-center gap-1.5 w-full rounded transition"
                     >
-                      <span className="text-[9px] text-slate-400 font-mono flex-shrink-0">📁</span>
-                      <span className="text-[10px] text-slate-400 font-mono truncate flex-1 text-left">
+                      <FileIcon className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                      <span className="text-[11px] text-slate-500 font-mono truncate flex-1 text-left">
                         {getName(doc.id, doc.sublabel)}
                       </span>
-                      <svg className="w-2.5 h-2.5 text-slate-300 group-hover/fn:text-emerald-500 flex-shrink-0 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16.414V18h1.586a2 2 0 001.414-.586l7-7a2 2 0 000-2.828l-1.172-1.172a2 2 0 00-2.828 0L9 13z" />
-                      </svg>
                     </button>
                   )}
                 </div>
@@ -284,25 +239,23 @@ export default function ScanReviewScreen({
           })}
         </div>
 
-        {/* Scan Quality Row */}
-        <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-extrabold tracking-wider text-slate-500 uppercase">Scan Quality</span>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              <Sparkles className="w-3 h-3" />
+        <div className="bg-white rounded-lg p-4 border border-slate-200 mt-4">
+          <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+            <span className="text-xs font-semibold text-slate-900">Scan Quality Report</span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
               Optimal
             </span>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2.5">
             {[
-              ['Documents detected', `${totalCount} of ${totalCount} found`],
-              ['Image readable', 'High Contrast'],
-              ['Perspective deskew', 'Corrected'],
+              ['Documents detected', `${totalCount} of ${totalCount} identified`],
+              ['Image resolution', 'Sufficient'],
+              ['Perspective deskew', 'Applied'],
             ].map(([label, val]) => (
               <div key={label} className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 font-medium">{label}</span>
-                <span className="flex items-center gap-1 text-emerald-600 font-bold">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="text-slate-600">{label}</span>
+                <span className="flex items-center gap-1.5 text-slate-900 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-700" />
                   {val}
                 </span>
               </div>
@@ -311,67 +264,62 @@ export default function ScanReviewScreen({
         </div>
       </div>
 
-      {/* ── Bottom buttons ── */}
       <div className="flex-shrink-0 p-4 bg-white border-t border-slate-200 flex items-center gap-3">
         <button
           type="button"
           onClick={onRetake}
-          className="flex-1 py-3.5 px-4 rounded-xl border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-100 transition text-center active:scale-98"
+          className="flex-1 py-2.5 px-4 rounded-md border border-slate-300 text-slate-700 font-medium text-sm hover:bg-slate-50 transition text-center"
         >
           Retake
         </button>
         <button
           type="button"
           onClick={onAcceptScan}
-          className="flex-2 py-3.5 px-5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-500 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-98"
+          className="flex-1 py-2.5 px-5 rounded-md bg-blue-700 text-white font-medium text-sm hover:bg-blue-800 transition flex items-center justify-center gap-2"
         >
-          <span>Use {totalCount > 1 ? `All ${totalCount} Scans` : 'This Scan'}</span>
+          <span>Use Scan{totalCount > 1 ? 's' : ''}</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>
 
-      {/* ── Lightbox ── */}
       {lightboxIdx !== null && (
         <div
-          className="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col"
+          className="absolute inset-0 z-50 bg-slate-900 flex flex-col"
           onClick={closeLightbox}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <div>
-              <p className="text-sm font-bold text-white">{displayDocs[lightboxIdx].label}</p>
-              <p className="text-[10px] text-slate-400 font-mono">{displayDocs[lightboxIdx].sublabel}</p>
+              <p className="text-sm font-medium text-white">{displayDocs[lightboxIdx].label}</p>
+              <p className="text-xs text-slate-400 font-mono mt-0.5">{displayDocs[lightboxIdx].sublabel}</p>
             </div>
             <button type="button" onClick={closeLightbox}
-              className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-white hover:bg-slate-700 transition">
-              <X className="w-4 h-4" />
+              className="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition">
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Image */}
           <div className="flex-1 flex items-center justify-center p-4 min-h-0" onClick={(e) => e.stopPropagation()}>
             <img
               src={displayDocs[lightboxIdx].image}
               alt={displayDocs[lightboxIdx].label}
-              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              className="max-w-full max-h-full object-contain rounded border border-slate-800"
             />
           </div>
 
-          {/* Navigation + counter */}
           {totalCount > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 flex-shrink-0 border-t border-slate-800" onClick={(e) => e.stopPropagation()}>
               <button type="button" onClick={prevLightbox}
-                className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white hover:bg-slate-700 transition active:scale-90">
+                className="p-2 rounded text-slate-300 hover:bg-slate-800 hover:text-white transition">
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 {displayDocs.map((_, i) => (
                   <button key={i} type="button" onClick={() => setLightboxIdx(i)}
-                    className={`w-2 h-2 rounded-full transition ${i === lightboxIdx ? 'bg-emerald-400 scale-125' : 'bg-slate-600'}`} />
+                    className={`w-2 h-2 rounded-full transition ${i === lightboxIdx ? 'bg-white' : 'bg-slate-600 hover:bg-slate-400'}`} />
                 ))}
               </div>
               <button type="button" onClick={nextLightbox}
-                className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white hover:bg-slate-700 transition active:scale-90">
+                className="p-2 rounded text-slate-300 hover:bg-slate-800 hover:text-white transition">
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>

@@ -1,10 +1,15 @@
 import axios from 'axios';
 import { DocumentType, ExtractedField, VerificationResult, AadhaarEkycData } from '@/types';
 
-// Future FastAPI Backend URL
+// Bypass Pinggy interstitial screen on automated API requests
+if (typeof axios !== 'undefined') {
+  axios.defaults.headers.common['X-Pinggy-No-Screen'] = '1';
+}
+
+// Backend URL (relative in browser to route through Next.js rewrite proxy, direct on server)
 const API_BASE_URL = typeof window !== 'undefined' 
-  ? `${window.location.protocol}//${window.location.hostname}:8000` 
-  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+  ? '' 
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000');
 
 export interface TamperingResult {
   tampered: boolean;
@@ -176,28 +181,57 @@ function parseOcrText(rawText: string, docType: DocumentType): Record<string, Ex
 export async function ocr(
   image: Blob | string,
   docType: DocumentType,
-  isSuspicious: boolean = false
+  isSuspicious: boolean = false,
+  enginePref: string = 'auto'
 ): Promise<Record<string, ExtractedField>> {
   // 1. Try FastAPI Backend endpoint first if accessible
   let backendFields: Record<string, ExtractedField> = {};
   try {
     const formData = new FormData();
+
     if (image instanceof Blob) {
-      formData.append('file', image);
-    } else {
+      formData.append('file', image, 'document.jpg');
+    } else if (typeof image === 'string' && image.startsWith('data:image/')) {
+      // Convert base64 Data URL to real binary Blob for backend Python models
+      const [header, base64Data] = image.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const binaryStr = atob(base64Data);
+      const len = binaryStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mime });
+      formData.append('file', blob, 'document.jpg');
+    } else if (typeof image === 'string' && image.startsWith('http')) {
       formData.append('image_url', image);
+    } else if (typeof image === 'string' && image.startsWith('/')) {
+      // Local sample path - fetch as blob if in browser
+      try {
+        const sampleRes = await fetch(image);
+        const sampleBlob = await sampleRes.blob();
+        formData.append('file', sampleBlob, 'sample.svg');
+      } catch {
+        formData.append('image_url', image);
+      }
+    } else {
+      formData.append('image_url', String(image));
     }
     formData.append('document_type', docType);
+    formData.append('engine_pref', enginePref);
 
     const response = await axios.post(`${API_BASE_URL}/api/ocr`, formData, {
-      timeout: 1500,
-      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000, // 120s timeout to allow deep learning OCR models to download & execute
+      headers: { 
+        'Content-Type': 'multipart/form-data',
+        'X-Pinggy-No-Screen': '1'
+      },
     });
     if (response.data && response.data.fields) {
       backendFields = response.data.fields;
     }
-  } catch {
-    // Backend offline; continue to in-browser Tesseract OCR
+  } catch (err: any) {
+    console.warn('Backend OCR call error, falling back:', err.message);
   }
 
   // 2. Run client-side Tesseract.js OCR on real captured/scanned image
@@ -383,7 +417,7 @@ export function calculateRisk(
     }
 
     return {
-      riskLevel: 'HIGH RISK',
+      riskLevel: 'REVIEW REQUIRED',
       riskScore: score,
       explanation: isEkycSkipped
         ? 'Potential document alteration detected and eKYC was skipped. Manual verification required.'
@@ -393,12 +427,10 @@ export function calculateRisk(
     };
   }
 
-  // When eKYC is skipped, overall score and risk factor are affected:
-  // Risk score increases from ~18-28 to ~42-48, elevating risk level to MEDIUM RISK.
   const score = isEkycSkipped
     ? Math.round(42 + Math.random() * 8)
     : Math.round(18 + Math.random() * 10);
-  const riskLevel: VerificationResult['riskLevel'] = isEkycSkipped ? 'MEDIUM RISK' : 'LOW RISK';
+  const riskLevel: VerificationResult['riskLevel'] = isEkycSkipped ? 'REVIEW REQUIRED' : 'ACCEPTED';
 
   const checks: VerificationResult['checks'] = [
     {
@@ -449,7 +481,7 @@ export function calculateRisk(
     riskLevel,
     riskScore: score,
     explanation: isEkycSkipped
-      ? 'Document scan passed, but Aadhaar eKYC was skipped. Overall risk factor increased to MEDIUM RISK due to unverified demographic records.'
+      ? 'Document scan passed, but Aadhaar eKYC was skipped. Overall risk factor increased to REVIEW REQUIRED due to unverified demographic records.'
       : 'Document appears valid based on the available verification checks.',
     checks,
     timestamp,

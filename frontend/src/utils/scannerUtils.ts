@@ -52,11 +52,12 @@ export async function detectCornersWithFallback(
     const timeoutId = setTimeout(() => controller.abort(), 600);
 
     const API_BASE_URL = typeof window !== 'undefined' 
-      ? `${window.location.protocol}//${window.location.hostname}:8000` 
-      : 'http://localhost:8000';
+      ? '' 
+      : 'http://127.0.0.1:8000';
 
     const res = await fetch(`${API_BASE_URL}/detect-corners`, {
       method: 'POST',
+      headers: { 'X-Pinggy-No-Screen': '1' },
       body: formData,
       signal: controller.signal,
     });
@@ -119,7 +120,7 @@ export async function processScanWithFallback(
   try {
     const rawBlob = await fetch(imageSrc).then((r) => r.blob());
     const formData = new FormData();
-    formData.append('file', rawBlob);
+    formData.append('file', rawBlob, 'document_scan.jpg');
     formData.append('corners', JSON.stringify(corners));
     formData.append('horizontal_tilt', horizontalTilt.toString());
     formData.append('vertical_tilt', verticalTilt.toString());
@@ -128,11 +129,12 @@ export async function processScanWithFallback(
     const timeoutId = setTimeout(() => controller.abort(), 1200);
 
     const API_BASE_URL = typeof window !== 'undefined' 
-      ? `${window.location.protocol}//${window.location.hostname}:8000` 
-      : 'http://localhost:8000';
+      ? '' 
+      : 'http://127.0.0.1:8000';
 
     const res = await fetch(`${API_BASE_URL}/scan-pro`, {
       method: 'POST',
+      headers: { 'X-Pinggy-No-Screen': '1' },
       body: formData,
       signal: controller.signal,
     });

@@ -14,8 +14,6 @@ import {
   ArrowRight,
   Pencil,
   X,
-  Sparkles,
-  SlidersHorizontal,
   RotateCcw,
   CheckCircle2,
 } from 'lucide-react';
@@ -29,10 +27,7 @@ import { loadOpenCV } from '@/utils/opencvScanner';
 import { saveCapturedImageToDisk } from '@/services/verificationService';
 import { DocumentType } from '@/types';
 
-// ------------------------------------------------------------------
-// Types
-// ------------------------------------------------------------------
-export type DocPreset = 'aadhaar' | 'driving_license' | 'passport' | 'visa' | 'tampered';
+export type DocPreset = 'passport' | 'proof_of_address' | 'bank_statement' | 'employment_letter' | 'tax_documents' | 'birth_certificate' | 'visa' | 'residence_permit';
 export type DocSide = 'front' | 'back' | 'single';
 
 export interface CapturedDoc {
@@ -51,7 +46,7 @@ export interface CapturedDoc {
 
 export interface ScanSessionPayload {
   documents: CapturedDoc[];
-  primaryDoc: CapturedDoc; // first non-suspicious doc, or first overall
+  primaryDoc: CapturedDoc;
 }
 
 interface WebCamScannerProps {
@@ -66,9 +61,6 @@ interface PendingScan {
   confidence: number;
 }
 
-// ------------------------------------------------------------------
-// Helpers & Presets
-// ------------------------------------------------------------------
 const PRESET_META: Record<
   DocPreset,
   {
@@ -79,43 +71,14 @@ const PRESET_META: Record<
     isSuspicious?: boolean;
   }
 > = {
-  aadhaar: {
-    label: 'Aadhaar Card',
-    docType: 'aadhaar',
-    sides: ['front', 'back'],
-    sampleImages: {
-      front: '/samples/aadhaar_front.svg',
-      back: '/samples/aadhaar_back.svg',
-    },
-  },
-  driving_license: {
-    label: 'Driving Licence',
-    docType: 'driving_license',
-    sides: ['front', 'back'],
-    sampleImages: {
-      front: '/samples/driving_license_front.svg',
-      back: '/samples/driving_license_back.svg',
-    },
-  },
-  passport: {
-    label: 'Passport',
-    docType: 'passport',
-    sides: ['single'],
-    sampleImages: { single: '/samples/passport_front.svg' },
-  },
-  visa: {
-    label: 'Visa',
-    docType: 'visa',
-    sides: ['single'],
-    sampleImages: { single: '/samples/visa_front.svg' },
-  },
-  tampered: {
-    label: 'Tampered Aadhaar ⚠️',
-    docType: 'aadhaar',
-    sides: ['front'],
-    sampleImages: { front: '/samples/aadhaar_tampered_sample.svg' },
-    isSuspicious: true,
-  },
+  passport: { label: 'Passport', docType: 'passport', sides: ['single'], sampleImages: { single: '/samples/passport_front.svg' } },
+  proof_of_address: { label: 'Proof of Address', docType: 'proof_of_address', sides: ['front'], sampleImages: { front: '/samples/driving_license_front.svg' } },
+  bank_statement: { label: 'Bank Statement', docType: 'bank_statement', sides: ['front', 'back'], sampleImages: { front: '/samples/driving_license_front.svg', back: '/samples/driving_license_back.svg' } },
+  employment_letter: { label: 'Employment Letter', docType: 'employment_letter', sides: ['front'], sampleImages: { front: '/samples/visa_front.svg' } },
+  tax_documents: { label: 'Tax Documents', docType: 'tax_documents', sides: ['front', 'back'], sampleImages: { front: '/samples/aadhaar_front.svg', back: '/samples/aadhaar_back.svg' } },
+  birth_certificate: { label: 'Birth Certificate', docType: 'birth_certificate', sides: ['single'], sampleImages: { single: '/samples/visa_front.svg' } },
+  visa: { label: 'Visa', docType: 'visa', sides: ['single'], sampleImages: { single: '/samples/visa_front.svg' } },
+  residence_permit: { label: 'Residence Permit', docType: 'residence_permit', sides: ['front', 'back'], sampleImages: { front: '/samples/driving_license_front.svg', back: '/samples/driving_license_back.svg' } },
 };
 
 const SIDE_LABEL: Record<DocSide, string> = {
@@ -126,7 +89,7 @@ const SIDE_LABEL: Record<DocSide, string> = {
 
 const FILTERS: { id: ScanFilter; label: string; icon: string }[] = [
   { id: 'original', label: 'Original', icon: '📷' },
-  { id: 'bw_clean', label: 'Crisp B&W', icon: '📄' },
+  { id: 'bw_clean', label: 'B&W', icon: '📄' },
   { id: 'grayscale', label: 'Grayscale', icon: '🌓' },
 ];
 
@@ -134,9 +97,6 @@ function shortId() {
   return Math.random().toString(36).slice(2, 8);
 }
 
-// ------------------------------------------------------------------
-// Component
-// ------------------------------------------------------------------
 export default function WebCamScanner({
   onSessionComplete,
   onRequestManualCrop,
@@ -146,40 +106,33 @@ export default function WebCamScanner({
   const cropContainerRef = useRef<HTMLDivElement>(null);
   const cropImgRef = useRef<HTMLImageElement>(null);
 
-  // Camera state
   const [hasCamera, setHasCamera] = useState<boolean | null>(null);
   const [flashOn, setFlashOn] = useState(false);
   const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Queue: list of already-captured docs in this session
   const [captured, setCaptured] = useState<CapturedDoc[]>([]);
 
-  // Current slot being configured
-  const [activePreset, setActivePreset] = useState<DocPreset>('aadhaar');
-  const [activeSide, setActiveSide] = useState<DocSide>('front');
-  const [activeFileName, setActiveFileName] = useState<string>('aadhaar_front');
+  const [activePreset, setActivePreset] = useState<DocPreset>('passport');
+  const [activeSide, setActiveSide] = useState<DocSide>('single');
+  const [activeFileName, setActiveFileName] = useState<string>('passport_single');
   const [isEditingName, setIsEditingName] = useState(false);
 
-  // Pending capture: In-viewfinder instant corner & filter review
   const [pendingScan, setPendingScan] = useState<PendingScan | null>(null);
   const [displayPoints, setDisplayPoints] = useState<Point[]>([]);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
   const draggingIdxRef = useRef<number | null>(null);
 
-  // Toast
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Preload OpenCV in background
   useEffect(() => {
     loadOpenCV().catch(() => {});
   }, []);
 
-  // Camera check
   useEffect(() => {
     navigator.mediaDevices
       ?.getUserMedia?.({ video: true })
@@ -190,7 +143,6 @@ export default function WebCamScanner({
       .catch(() => setHasCamera(false));
   }, []);
 
-  // Update file name when preset or side changes (only if user hasn't manually set it)
   useEffect(() => {
     setActiveFileName(`${activePreset}_${activeSide}`);
   }, [activePreset, activeSide]);
@@ -203,9 +155,6 @@ export default function WebCamScanner({
   const meta = PRESET_META[activePreset];
   const sampleImage = meta.sampleImages[activeSide] || Object.values(meta.sampleImages)[0];
 
-  // ----------------------------------------------------------------
-  // Corner Drag Mapping (for In-Viewfinder Fine Tuning)
-  // ----------------------------------------------------------------
   const initDisplayPoints = useCallback((corners: Point[], imgEl: HTMLImageElement) => {
     if (!cropContainerRef.current) return;
     const containerRect = cropContainerRef.current.getBoundingClientRect();
@@ -251,7 +200,6 @@ export default function WebCamScanner({
       const ox = imgRect.left - containerRect.left;
       const oy = imgRect.top - containerRect.top;
 
-      // Clamp to image dimensions
       const clampedX = Math.max(ox, Math.min(pos.x, ox + imgRect.width));
       const clampedY = Math.max(oy, Math.min(pos.y, oy + imgRect.height));
 
@@ -283,7 +231,6 @@ export default function WebCamScanner({
     };
   }, [handleDragMove, handleDragEnd]);
 
-  // Convert display coordinates back to image space
   const getScaledCorners = (): Point[] => {
     if (!cropImgRef.current || !cropContainerRef.current || displayPoints.length !== 4) {
       return pendingScan?.corners || [];
@@ -303,9 +250,6 @@ export default function WebCamScanner({
     }));
   };
 
-  // ----------------------------------------------------------------
-  // Trigger Capture -> Open In-Viewfinder Review
-  // ----------------------------------------------------------------
   const handleCapture = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -314,7 +258,6 @@ export default function WebCamScanner({
       let rawSrc: string | null = webcamRef.current?.getScreenshot() ?? null;
       if (!rawSrc) rawSrc = sampleImage!;
 
-      // Run advanced OpenCV / Homography corner detection
       const { corners, confidence } = await detectCornersWithFallback(rawSrc);
 
       setPendingScan({
@@ -331,7 +274,6 @@ export default function WebCamScanner({
     }
   };
 
-  // Gallery upload
   const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -357,16 +299,12 @@ export default function WebCamScanner({
     e.target.value = '';
   };
 
-  // ----------------------------------------------------------------
-  // Save confirmed scan from In-Viewfinder Review
-  // ----------------------------------------------------------------
   const handleConfirmScan = async () => {
     if (!pendingScan || isProcessing) return;
     setIsProcessing(true);
 
     try {
       const finalCorners = getScaledCorners();
-      // Run true 4-point perspective warp with selected CamScanner filter
       const processed = await processScanWithFallback(
         pendingScan.rawSrc,
         finalCorners,
@@ -397,9 +335,8 @@ export default function WebCamScanner({
       };
 
       setCaptured((prev) => [...prev, doc]);
-      showToast(`✓ Deskewed & Saved → image/${saveResult.fileName}`);
+      showToast(`Saved → image/${saveResult.fileName}`);
 
-      // Auto-advance side: if front captured and doc has back, switch to back
       if (activeSide === 'front' && PRESET_META[activePreset].sides.includes('back')) {
         setActiveSide('back');
         setActiveFileName(`${activePreset}_back`);
@@ -423,29 +360,22 @@ export default function WebCamScanner({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-white select-none">
-      {/* ── Top bar ── */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg">
-            <ShieldCheck className="w-5 h-5 text-slate-950" />
+    <div className="flex flex-col h-full bg-slate-900 text-white select-none">
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800 flex-shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded bg-blue-700 flex items-center justify-center">
+            <ShieldCheck className="w-4 h-4 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-sm text-white">SecureScan AI</span>
-              <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/30">
-                CamScanner Pro
-              </span>
-            </div>
-            <p className="text-[10px] text-slate-400">OpenCV Deskew · Auto-save to ./image</p>
+            <div className="font-semibold text-sm text-white">Document Scanner</div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setFlashOn(!flashOn)}
-            className={`p-1.5 rounded-full transition ${
-              flashOn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'
+            className={`p-2 rounded transition ${
+              flashOn ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
             {flashOn ? <Zap className="w-4 h-4 fill-current" /> : <ZapOff className="w-4 h-4" />}
@@ -453,28 +383,24 @@ export default function WebCamScanner({
           <button
             type="button"
             onClick={() => setCameraFacing((f) => (f === 'environment' ? 'user' : 'environment'))}
-            className="p-1.5 rounded-full bg-slate-800 text-slate-300 hover:text-white transition"
+            className="p-2 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white transition"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* ── Current slot selector ── */}
-      <div className="px-3 py-2 bg-slate-900 border-b border-slate-800 flex-shrink-0">
-        {/* Preset Pills */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none mb-1.5">
+      <div className="px-3 py-2.5 bg-slate-900 border-b border-slate-800 flex-shrink-0">
+        <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none mb-1.5">
           {(Object.keys(PRESET_META) as DocPreset[]).map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => handlePresetChange(p)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap flex-shrink-0 transition ${
+              className={`px-3 py-1.5 rounded text-[11px] font-medium whitespace-nowrap flex-shrink-0 transition ${
                 activePreset === p
-                  ? p === 'tampered'
-                    ? 'bg-rose-500 text-white'
-                    : 'bg-emerald-500 text-slate-950'
-                  : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+                  ? 'bg-blue-700 text-white border border-blue-700'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-slate-200'
               }`}
             >
               {PRESET_META[p].label}
@@ -482,10 +408,9 @@ export default function WebCamScanner({
           ))}
         </div>
 
-        {/* Side + File name row */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-1">
           {meta.sides.length > 1 && (
-            <div className="flex items-center gap-0.5 bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+            <div className="flex items-center gap-1 bg-slate-800 p-1 rounded border border-slate-700">
               {meta.sides.map((s) => (
                 <button
                   key={s}
@@ -494,12 +419,12 @@ export default function WebCamScanner({
                     setActiveSide(s);
                     setActiveFileName(`${activePreset}_${s}`);
                   }}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition flex items-center gap-0.5 ${
-                    activeSide === s ? 'bg-emerald-500 text-slate-950' : 'text-slate-300'
+                  className={`px-2.5 py-1 rounded text-[10px] font-semibold transition flex items-center gap-1 ${
+                    activeSide === s ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-slate-300'
                   }`}
                 >
                   {captured.some((d) => d.docType === meta.docType && d.side === s) && (
-                    <Check className="w-2.5 h-2.5" />
+                    <Check className="w-3 h-3" />
                   )}
                   {SIDE_LABEL[s]}
                 </button>
@@ -507,9 +432,8 @@ export default function WebCamScanner({
             </div>
           )}
 
-          {/* File name inline edit */}
-          <div className="flex-1 flex items-center gap-1 bg-slate-800 rounded-lg px-2.5 py-1 border border-slate-700">
-            <span className="text-[10px] text-slate-400 font-mono flex-shrink-0">📁</span>
+          <div className="flex-1 flex items-center gap-1.5 bg-slate-800 rounded px-3 py-1.5 border border-slate-700">
+            <span className="text-[10px] text-slate-500 font-mono flex-shrink-0">File:</span>
             {isEditingName ? (
               <input
                 type="text"
@@ -526,22 +450,20 @@ export default function WebCamScanner({
               <button
                 type="button"
                 onClick={() => setIsEditingName(true)}
-                className="flex-1 text-left text-[11px] font-mono text-emerald-300 hover:text-emerald-200 flex items-center gap-1 truncate"
+                className="flex-1 text-left text-[11px] font-mono text-blue-400 hover:text-blue-300 flex items-center gap-1.5 truncate"
               >
                 <span className="truncate">{activeFileName}</span>
-                <Pencil className="w-2.5 h-2.5 text-slate-500 flex-shrink-0" />
+                <Pencil className="w-3 h-3 text-slate-500 flex-shrink-0" />
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Viewfinder / Scanner Mechanism ── */}
-      <div className="relative flex-1 flex items-center justify-center overflow-hidden bg-black px-2 py-1.5 min-h-0">
-        {flashOn && <div className="absolute inset-0 bg-white/20 z-10 pointer-events-none" />}
+      <div className="relative flex-1 flex items-center justify-center overflow-hidden bg-black min-h-0">
+        {flashOn && <div className="absolute inset-0 bg-white/10 z-10 pointer-events-none" />}
 
-        <div className="relative w-full h-full max-h-full rounded-xl overflow-hidden border border-slate-700/60 shadow-2xl bg-slate-900 flex items-center justify-center">
-          {/* Live Camera Stream */}
+        <div className="relative w-full h-full bg-slate-900 flex items-center justify-center">
           {pendingScan === null ? (
             <>
               {hasCamera !== false ? (
@@ -549,6 +471,7 @@ export default function WebCamScanner({
                   ref={webcamRef}
                   audio={false}
                   screenshotFormat="image/jpeg"
+                  screenshotQuality={1}
                   videoConstraints={{
                     facingMode: cameraFacing,
                     width: { ideal: 1920 },
@@ -563,38 +486,30 @@ export default function WebCamScanner({
                   <img
                     src={sampleImage}
                     alt="Sample"
-                    className="w-full h-auto max-h-full object-contain rounded-lg shadow-xl"
+                    className="w-full h-auto max-h-full object-contain rounded border border-slate-800"
                   />
                 </div>
               )}
 
-              {/* Dynamic CamScanner Viewfinder Guides */}
-              <div className="absolute inset-4 rounded-xl border border-emerald-400/40 pointer-events-none transition-all">
-                {/* 4 Corner Targeting L-Brackets */}
-                <div className="absolute -top-1 -left-1 w-6 h-6 border-t-3 border-l-3 border-emerald-400 rounded-tl shadow-[0_0_8px_#10b981]" />
-                <div className="absolute -top-1 -right-1 w-6 h-6 border-t-3 border-r-3 border-emerald-400 rounded-tr shadow-[0_0_8px_#10b981]" />
-                <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-3 border-l-3 border-emerald-400 rounded-bl shadow-[0_0_8px_#10b981]" />
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-3 border-r-3 border-emerald-400 rounded-br shadow-[0_0_8px_#10b981]" />
-
-                {/* Laser Scanning Line */}
-                <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-laser shadow-[0_0_12px_#34d399]" />
+              <div className="absolute inset-4 border border-blue-500/40 pointer-events-none transition-all">
+                <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-blue-500" />
+                <div className="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-blue-500" />
+                <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-blue-500" />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-blue-500" />
               </div>
 
-              {/* Real-time Document Detection Feedback */}
-              <div className="absolute top-3 inset-x-4 flex justify-center pointer-events-none z-10">
-                <div className="bg-slate-900/90 border border-emerald-500/40 text-emerald-400 px-3 py-1 rounded-full text-[11px] font-bold backdrop-blur-md flex items-center gap-1.5 shadow-xl">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  {PRESET_META[activePreset].label} · {SIDE_LABEL[activeSide]} In Frame
+              <div className="absolute top-4 inset-x-4 flex justify-center pointer-events-none z-10">
+                <div className="bg-slate-900/80 border border-slate-700 text-blue-400 px-4 py-1.5 rounded text-[11px] font-medium backdrop-blur-md flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  {PRESET_META[activePreset].label} ({SIDE_LABEL[activeSide]})
                 </div>
               </div>
             </>
           ) : (
-            /* ── Interactive In-Viewfinder Review & Corner Adjustment ── */
             <div
               ref={cropContainerRef}
               className="relative w-full h-full flex flex-col items-center justify-center bg-slate-950 select-none overflow-hidden"
             >
-              {/* Captured Image */}
               <img
                 ref={cropImgRef}
                 src={pendingScan.rawSrc}
@@ -603,37 +518,35 @@ export default function WebCamScanner({
                 className="max-w-full max-h-full object-contain pointer-events-none"
               />
 
-              {/* Bounding Quadrilateral Overlay */}
               {displayPoints.length === 4 && (
                 <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
                   <polygon
                     points={displayPoints.map((p) => `${p.x},${p.y}`).join(' ')}
-                    fill="rgba(16, 185, 129, 0.22)"
-                    stroke="#10b981"
-                    strokeWidth="2.5"
-                    strokeDasharray="4 2"
+                    fill="rgba(37, 99, 235, 0.2)"
+                    stroke="#2563eb"
+                    strokeWidth="2"
                   />
-                  {/* Diagonal Guidelines */}
                   <line
                     x1={displayPoints[0].x}
                     y1={displayPoints[0].y}
                     x2={displayPoints[2].x}
                     y2={displayPoints[2].y}
-                    stroke="rgba(16, 185, 129, 0.25)"
+                    stroke="rgba(37, 99, 235, 0.4)"
                     strokeWidth="1"
+                    strokeDasharray="4 2"
                   />
                   <line
                     x1={displayPoints[1].x}
                     y1={displayPoints[1].y}
                     x2={displayPoints[3].x}
                     y2={displayPoints[3].y}
-                    stroke="rgba(16, 185, 129, 0.25)"
+                    stroke="rgba(37, 99, 235, 0.4)"
                     strokeWidth="1"
+                    strokeDasharray="4 2"
                   />
                 </svg>
               )}
 
-              {/* Interactive 4 Draggable Corner Handles */}
               {displayPoints.map((pt, idx) => (
                 <div
                   key={idx}
@@ -653,27 +566,24 @@ export default function WebCamScanner({
                     setDraggingIdx(idx);
                   }}
                   className={`absolute z-30 w-8 h-8 rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing transition-transform ${
-                    draggingIdx === idx ? 'scale-130 ring-4 ring-emerald-400' : 'hover:scale-110'
+                    draggingIdx === idx ? 'scale-110' : ''
                   }`}
                 >
-                  <div className="w-5 h-5 rounded-full bg-emerald-400 border-2 border-slate-950 shadow-lg flex items-center justify-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-950" />
-                  </div>
+                  <div className="w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-md flex items-center justify-center" />
                 </div>
               ))}
 
-              {/* Filter Selector Bar (CamScanner Enhancements) */}
-              <div className="absolute top-2 inset-x-2 z-30 flex items-center justify-center">
-                <div className="flex gap-1 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-700/80 shadow-2xl">
+              <div className="absolute top-4 inset-x-4 z-30 flex items-center justify-center">
+                <div className="flex gap-1.5 bg-slate-900/90 backdrop-blur-md p-1.5 rounded border border-slate-700">
                   {FILTERS.map((f) => (
                     <button
                       key={f.id}
                       type="button"
                       onClick={() => setPendingScan((p) => (p ? { ...p, filter: f.id } : null))}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition flex items-center gap-1 ${
+                      className={`px-3 py-1 rounded text-[11px] font-medium transition flex items-center gap-1.5 ${
                         pendingScan.filter === f.id
-                          ? 'bg-emerald-500 text-slate-950 shadow-md'
-                          : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                       }`}
                     >
                       <span>{f.icon}</span>
@@ -683,14 +593,13 @@ export default function WebCamScanner({
                 </div>
               </div>
 
-              {/* Action Floating Buttons */}
-              <div className="absolute bottom-3 inset-x-4 z-30 flex items-center justify-between gap-3">
+              <div className="absolute bottom-4 inset-x-4 z-30 flex items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => setPendingScan(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold border border-slate-700/80 backdrop-blur-md transition flex items-center gap-1.5 active:scale-95"
+                  className="px-5 py-2.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium border border-slate-700 transition flex items-center gap-1.5"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  <RotateCcw className="w-4 h-4" />
                   Retake
                 </button>
 
@@ -698,50 +607,46 @@ export default function WebCamScanner({
                   type="button"
                   onClick={handleConfirmScan}
                   disabled={isProcessing}
-                  className="flex-1 py-2 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-1.5 active:scale-95"
+                  className="flex-1 py-2.5 px-4 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition flex items-center justify-center gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  Accept & Deskew Scan
+                  Apply & Save
                 </button>
               </div>
             </div>
           )}
 
-          {/* Processing Overlay */}
           {isProcessing && (
-            <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-40 flex flex-col items-center justify-center">
-              <div className="w-10 h-10 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" />
-              <p className="mt-2.5 text-xs font-bold text-white">Deskewing & Enhancing...</p>
+            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-40 flex flex-col items-center justify-center">
+              <div className="w-8 h-8 rounded-full border-2 border-blue-500/30 border-t-blue-500 animate-spin" />
+              <p className="mt-3 text-xs font-medium text-slate-300">Processing scan...</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Toast Notification ── */}
       {toast && (
-        <div className="absolute top-28 inset-x-4 flex justify-center z-50 pointer-events-none animate-in fade-in duration-200">
-          <div className="bg-emerald-500 text-slate-950 px-3.5 py-1.5 rounded-full text-[11px] font-black shadow-xl flex items-center gap-1.5">
-            <FolderCheck className="w-3.5 h-3.5" />
+        <div className="absolute top-24 inset-x-4 flex justify-center z-50 pointer-events-none">
+          <div className="bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2 rounded text-[11px] font-medium shadow-lg flex items-center gap-2">
+            <FolderCheck className="w-4 h-4 text-emerald-500" />
             {toast}
           </div>
         </div>
       )}
 
-      {/* ── Captured Docs Tray ── */}
       {captured.length > 0 && (
-        <div className="flex-shrink-0 bg-slate-900 border-t border-slate-800 px-3 py-2">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-              Captured ({captured.length})
+        <div className="flex-shrink-0 bg-slate-900 border-t border-slate-800 px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              Scanned Documents ({captured.length})
             </span>
-            <span className="text-[10px] text-emerald-400 font-bold">All saved to ./image</span>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
             {captured.map((doc) => (
-              <div key={doc.id} className="relative flex-shrink-0 w-16">
+              <div key={doc.id} className="relative flex-shrink-0 w-20">
                 <div
-                  className={`w-16 h-12 rounded-lg overflow-hidden border-2 ${
-                    doc.isSuspicious ? 'border-rose-500' : 'border-emerald-500'
+                  className={`w-20 h-14 rounded overflow-hidden border ${
+                    doc.isSuspicious ? 'border-rose-500' : 'border-slate-700'
                   }`}
                 >
                   <img
@@ -750,45 +655,42 @@ export default function WebCamScanner({
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="text-center mt-0.5">
-                  <p className="text-[8px] text-slate-300 font-mono truncate w-full leading-tight">
+                <div className="text-center mt-1.5">
+                  <p className="text-[9px] text-slate-400 font-mono truncate w-full">
                     {doc.fileName}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => removeDoc(doc.id)}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-600 text-white rounded-full flex items-center justify-center shadow-md"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-slate-800 border border-slate-700 text-slate-400 hover:text-rose-400 rounded-full flex items-center justify-center transition"
                 >
-                  <X className="w-2.5 h-2.5" />
+                  <X className="w-3 h-3" />
                 </button>
               </div>
             ))}
 
-            {/* Add more shortcut */}
             <button
               type="button"
               onClick={() => {}}
-              className="flex-shrink-0 w-16 h-12 rounded-lg border-2 border-dashed border-slate-700 flex items-center justify-center text-slate-600 hover:border-emerald-500 hover:text-emerald-400 transition"
+              className="flex-shrink-0 w-20 h-14 rounded border border-dashed border-slate-700 flex items-center justify-center text-slate-500 hover:border-slate-500 hover:text-slate-400 transition"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </button>
           </div>
         </div>
       )}
 
-      {/* ── Bottom Controls ── */}
-      <div className="flex-shrink-0 px-4 py-3 bg-slate-950 border-t border-slate-900 flex items-center justify-between gap-3">
-        {/* Gallery */}
+      <div className="flex-shrink-0 px-4 py-3 bg-slate-950 border-t border-slate-900 flex items-center justify-between gap-4">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex flex-col items-center gap-0.5 text-slate-400 hover:text-white transition active:scale-95"
+          className="flex flex-col items-center gap-1.5 text-slate-500 hover:text-slate-300 transition"
         >
-          <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
-            <ImageIcon className="w-4 h-4" />
+          <div className="w-10 h-10 rounded bg-slate-900 border border-slate-800 flex items-center justify-center">
+            <ImageIcon className="w-5 h-5" />
           </div>
-          <span className="text-[9px] font-medium">Gallery</span>
+          <span className="text-[10px] font-medium">Upload</span>
         </button>
         <input
           ref={fileInputRef}
@@ -798,41 +700,39 @@ export default function WebCamScanner({
           onChange={handleGalleryUpload}
         />
 
-        {/* Shutter */}
         <button
           type="button"
           onClick={handleCapture}
           disabled={isProcessing || pendingScan !== null}
-          className="group p-1 active:scale-90 transition disabled:opacity-40"
+          className="group p-1 active:scale-95 transition disabled:opacity-50"
         >
-          <div className="w-16 h-16 rounded-full border-[3px] border-emerald-400 flex items-center justify-center p-1 shadow-xl pulse-shutter">
-            <div className="w-full h-full rounded-full bg-white group-hover:bg-emerald-300 transition flex items-center justify-center">
-              <Camera className="w-6 h-6 text-slate-950" />
+          <div className="w-16 h-16 rounded-full border-[3px] border-slate-700 group-hover:border-blue-500 flex items-center justify-center p-1 transition-colors">
+            <div className="w-full h-full rounded-full bg-slate-200 group-hover:bg-white transition-colors flex items-center justify-center">
+              <Camera className="w-6 h-6 text-slate-800" />
             </div>
           </div>
         </button>
 
-        {/* Proceed button (active once ≥1 captured) */}
         {captured.length > 0 ? (
           <button
             type="button"
             onClick={handleProceed}
-            className="flex flex-col items-center gap-0.5 active:scale-95 transition"
+            className="flex flex-col items-center gap-1.5 transition hover:opacity-80"
           >
-            <div className="w-10 h-10 rounded-full bg-emerald-600 border border-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-600/30 relative">
+            <div className="w-10 h-10 rounded bg-blue-700 flex items-center justify-center relative">
               <ArrowRight className="w-5 h-5 text-white" />
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-white text-emerald-700 text-[9px] font-black rounded-full flex items-center justify-center">
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-blue-900 text-blue-100 text-[9px] font-bold rounded flex items-center justify-center border border-blue-700">
                 {captured.length}
               </span>
             </div>
-            <span className="text-[9px] font-bold text-emerald-400">Proceed</span>
+            <span className="text-[10px] font-medium text-blue-400">Continue</span>
           </button>
         ) : (
-          <div className="flex flex-col items-center gap-0.5 text-slate-600">
-            <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
-              <FolderCheck className="w-4 h-4" />
+          <div className="flex flex-col items-center gap-1.5 text-slate-600">
+            <div className="w-10 h-10 rounded bg-slate-900 border border-slate-800 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
-            <span className="text-[9px] font-medium">Auto Save</span>
+            <span className="text-[10px] font-medium">Capture</span>
           </div>
         )}
       </div>

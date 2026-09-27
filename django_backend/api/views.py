@@ -42,105 +42,243 @@ def load_json_data(doc_type):
                 return {}
     return {}
 
+# Add project root to sys.path so we can import src.pipeline
+project_root = os.path.abspath(os.path.join(settings.BASE_DIR, '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+try:
+    from src.pipeline import DocumentPipeline
+    pipeline_instance = DocumentPipeline(output_dir=os.path.join(settings.BASE_DIR, '..', 'image'))
+    print("[OK] DocumentPipeline loaded in Django backend!")
+except Exception as e:
+    print("[WARN] DocumentPipeline initialization note:", e)
+    pipeline_instance = None
+
+from src.validators import DocumentValidator
+from src.verhoeff import Verhoeff
+
 @api_view(['POST'])
 def ocr_view(request):
     """
-    Extracts QR code from the uploaded image if present.
+    Executes real OCR extraction using DocumentPipeline on uploaded document images.
+    Returns real extracted fields and raw OCR text directly to the frontend.
     """
     doc_type = request.data.get('document_type', 'aadhaar')
     file_obj = request.FILES.get('file')
+    image_url = request.data.get('image_url')
+    engine_pref = request.data.get('engine_pref', 'auto')
     
-    fields = {}
     pic_path = ""
     qr_path = ""
+    raw_ocr_text = ""
+    real_extracted = {}
     
-    if file_obj:
+    # 1. If file uploaded or image URL provided, run the DocumentPipeline OCR engine
+    print(f"[DEBUG] ocr_view called. doc_type={doc_type}, file_obj={bool(file_obj)}, image_url={bool(image_url)}")
+    if file_obj or image_url:
+        output_dir = os.path.join(settings.BASE_DIR, '..', 'image')
+        os.makedirs(output_dir, exist_ok=True)
+        temp_input_path = os.path.join(output_dir, f"{doc_type}_input.jpg")
+        
         try:
-            import cv2
-            import numpy as np
-            from pyzbar.pyzbar import decode
+            if file_obj:
+                file_content = file_obj.read()
+                print(f"[DEBUG] Wrote file_obj to {temp_input_path}, size: {len(file_content)}")
+                with open(temp_input_path, 'wb') as f:
+                    f.write(file_content)
+            elif image_url and image_url.startswith('data:image'):
+                import base64
+                _, b64 = image_url.split(',', 1)
+                decoded = base64.b64decode(b64)
+                print(f"[DEBUG] Wrote base64 image_url to {temp_input_path}, size: {len(decoded)}")
+                with open(temp_input_path, 'wb') as f:
+                    f.write(decoded)
+
+            # Run DocumentPipeline on the image
+            print(f"[DEBUG] Pipeline instance: {bool(pipeline_instance)}")
+            if pipeline_instance and os.path.exists(temp_input_path) and os.path.getsize(temp_input_path) > 0:
+                print(f"[DEBUG] Calling pipeline_instance.process_file({temp_input_path}), engine_pref={engine_pref}")
+                results = pipeline_instance.process_file(temp_input_path, engine_pref=engine_pref)
+                print(f"[DEBUG] Pipeline results: {results}")
+                if results and len(results) > 0:
+                    first_res = results[0]
+                    real_extracted = first_res.get("extracted_fields", {})
+                    raw_ocr_text = first_res.get("raw_ocr_text", "")
+                    # Pipeline stores paths inside 'cropped_images' dict
+                    crops = first_res.get("cropped_images", {})
+                    if crops.get("photo_image_path"):
+                        pic_path = crops["photo_image_path"]
+                    if crops.get("qr_image_path"):
+                        qr_path = crops["qr_image_path"]
+                    print(f"[OK] Real OCR Extracted for {doc_type}:", real_extracted)
+                else:
+                    print(f"[WARN] Pipeline returned empty results list")
+            else:
+                print(f"[WARN] Skipping pipeline. exists={os.path.exists(temp_input_path)}, size={os.path.getsize(temp_input_path) if os.path.exists(temp_input_path) else 'N/A'}")
+        except Exception as ocr_err:
+            print(f"[WARN] DocumentPipeline processing error for {doc_type}:", ocr_err)
+            import traceback
+            traceback.print_exc()
             
-            # Read image for QR extraction
-            contents = file_obj.read()
-            nparr = np.frombuffer(contents, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if not pic_path:
+            pic_path = os.path.join(output_dir, f"{doc_type}_pic.jpg")
+        if not qr_path:
+            qr_path = os.path.join(output_dir, f"{doc_type}_qr.jpg")
+
+    # Format fields as expected by frontend using ONLY real OCR model results
+    fields = {}
+    
+    if doc_type == 'aadhaar':
+        name_val = real_extracted.get('name') or ''
+        uid_val = real_extracted.get('aadhaar_number') or real_extracted.get('masked_aadhaar') or ''
+        addr_val = real_extracted.get('address') or ''
+        dob_val = real_extracted.get('dob') or ''
+        gender_val = real_extracted.get('gender') or ''
+        
+        fields['name'] = {'key': 'name', 'label': 'Name', 'value': str(name_val) if name_val else '', 'confidence': 98 if name_val else 0, 'editable': True}
+        fields['aadharNo'] = {'key': 'aadharNo', 'label': 'Aadhaar No', 'value': str(uid_val) if uid_val else '', 'confidence': 98 if uid_val else 0, 'editable': True}
+        fields['address'] = {'key': 'address', 'label': 'Address', 'value': str(addr_val) if addr_val else '', 'confidence': 95 if addr_val else 0, 'editable': True}
+        fields['dateOfBirth'] = {'key': 'dateOfBirth', 'label': 'Date of Birth', 'value': str(dob_val) if dob_val else '', 'confidence': 98 if dob_val else 0, 'editable': True}
+        fields['gender'] = {'key': 'gender', 'label': 'Gender', 'value': str(gender_val) if gender_val else '', 'confidence': 98 if gender_val else 0, 'editable': True}
             
-            decoded_objects = decode(img)
-            if decoded_objects:
-                qr_text = decoded_objects[0].data.decode('utf-8')
-                fields['qr_data'] = {'key': 'qr_data', 'label': 'QR Code Data', 'value': qr_text, 'confidence': 100, 'editable': False}
-                
-                # Attempt to parse demographic data from the QR payload
-                try:
-                    import sys
-                    sys.path.append(os.path.join(settings.BASE_DIR, '..'))
-                    from aadhar import parse_secure_qr_string
-                    payload, _ = parse_secure_qr_string(qr_text)
-                    
-                    if payload:
-                        if payload.get('name'):
-                            fields['name'] = {'key': 'name', 'label': 'Name', 'value': payload['name'], 'confidence': 100, 'editable': True}
-                        if payload.get('dob'):
-                            fields['dateOfBirth'] = {'key': 'dateOfBirth', 'label': 'Date of Birth', 'value': payload['dob'], 'confidence': 100, 'editable': True}
-                        if payload.get('reference_id'):
-                            # Mask the reference ID to look like masked Aadhaar
-                            ref_id = str(payload['reference_id'])
-                            masked = f"XXXX XXXX {ref_id[-4:]}" if len(ref_id) >= 4 else ref_id
-                            fields['maskedAadhaar'] = {'key': 'maskedAadhaar', 'label': 'Masked Aadhaar Number', 'value': masked, 'confidence': 100, 'editable': True}
-                except Exception as parse_err:
-                    print("Could not parse QR payload for demographics:", parse_err)
-                    
-        except Exception as e:
-            print("QR extraction failed:", e)
-            
-    return Response({"fields": fields, "pic_path": pic_path, "qr_path": qr_path})
+    elif doc_type == 'passport':
+        name_val = real_extracted.get('name') or ''
+        passport_val = real_extracted.get('passport_number') or ''
+        dob_val = real_extracted.get('dob') or ''
+        doi_val = real_extracted.get('date_of_issue') or ''
+        exp_val = real_extracted.get('date_of_expiry') or real_extracted.get('expiry_date') or ''
+        poi_val = real_extracted.get('place_of_issue') or ''
+        pob_val = real_extracted.get('place_of_birth') or ''
+        nat_val = real_extracted.get('nationality') or ''
+        sex_val = real_extracted.get('sex') or ''
+        sur_val = real_extracted.get('surname') or ''
+        given_val = real_extracted.get('given_name') or ''
+        sig_val = real_extracted.get('signature') or ''
+        addr_val = real_extracted.get('address') or ''
+        mrz_val = real_extracted.get('mrz_raw') or ''
+        if isinstance(mrz_val, list):
+            mrz_val = "\n".join(mrz_val)
+        
+        fields['passportNumber'] = {'key': 'passportNumber', 'label': 'Passport Number', 'value': str(passport_val) if passport_val else '', 'confidence': 98 if passport_val else 0, 'editable': True}
+        fields['name'] = {'key': 'name', 'label': 'Name', 'value': str(name_val) if name_val else '', 'confidence': 98 if name_val else 0, 'editable': True}
+        if sur_val:
+            fields['surname'] = {'key': 'surname', 'label': 'Surname', 'value': str(sur_val), 'confidence': 98, 'editable': True}
+        if given_val:
+            fields['givenName'] = {'key': 'givenName', 'label': 'Given Name', 'value': str(given_val), 'confidence': 98, 'editable': True}
+        fields['dateOfBirth'] = {'key': 'dateOfBirth', 'label': 'DOB', 'value': str(dob_val) if dob_val else '', 'confidence': 98 if dob_val else 0, 'editable': True}
+        if nat_val:
+            fields['nationality'] = {'key': 'nationality', 'label': 'Nationality', 'value': str(nat_val), 'confidence': 98, 'editable': True}
+        if sex_val:
+            fields['gender'] = {'key': 'gender', 'label': 'Sex', 'value': str(sex_val), 'confidence': 98, 'editable': True}
+        if pob_val:
+            fields['placeOfBirth'] = {'key': 'placeOfBirth', 'label': 'Place of Birth', 'value': str(pob_val), 'confidence': 98, 'editable': True}
+        fields['dateOfIssue'] = {'key': 'dateOfIssue', 'label': 'Date of Issue', 'value': str(doi_val) if doi_val else '', 'confidence': 98 if doi_val else 0, 'editable': True}
+        fields['dateOfExpiry'] = {'key': 'dateOfExpiry', 'label': 'Date of Expiry', 'value': str(exp_val) if exp_val else '', 'confidence': 98 if exp_val else 0, 'editable': True}
+        fields['placeOfIssue'] = {'key': 'placeOfIssue', 'label': 'Place of Issue', 'value': str(poi_val) if poi_val else '', 'confidence': 98 if poi_val else 0, 'editable': True}
+        if sig_val:
+            fields['signature'] = {'key': 'signature', 'label': 'Signature', 'value': str(sig_val), 'confidence': 95, 'editable': True}
+        if addr_val:
+            fields['address'] = {'key': 'address', 'label': 'Address', 'value': str(addr_val), 'confidence': 95, 'editable': True}
+        fields['mrzCode'] = {'key': 'mrzCode', 'label': 'MRZZ Code', 'value': str(mrz_val) if mrz_val else '', 'confidence': 99 if mrz_val else 0, 'editable': True}
+        
+    elif doc_type == 'driving_license':
+        dl_val = real_extracted.get('dl_number') or ''
+        name_val = real_extracted.get('name') or ''
+        doi_val = real_extracted.get('date_of_issue') or ''
+        exp_val = real_extracted.get('date_of_expiry') or real_extracted.get('validity') or ''
+        poi_val = real_extracted.get('place_of_issue') or ''
+        addr_val = real_extracted.get('address') or ''
+        
+        fields['licenseNumber'] = {'key': 'licenseNumber', 'label': 'License Number', 'value': str(dl_val) if dl_val else '', 'confidence': 98 if dl_val else 0, 'editable': True}
+        fields['name'] = {'key': 'name', 'label': 'Name', 'value': str(name_val) if name_val else '', 'confidence': 98 if name_val else 0, 'editable': True}
+        fields['dateOfIssue'] = {'key': 'dateOfIssue', 'label': 'Date of Issue', 'value': str(doi_val) if doi_val else '', 'confidence': 98 if doi_val else 0, 'editable': True}
+        fields['dateOfExpiry'] = {'key': 'dateOfExpiry', 'label': 'Date of Expiry', 'value': str(exp_val) if exp_val else '', 'confidence': 98 if exp_val else 0, 'editable': True}
+        fields['placeOfIssue'] = {'key': 'placeOfIssue', 'label': 'Place of Issue', 'value': str(poi_val) if poi_val else '', 'confidence': 95 if poi_val else 0, 'editable': True}
+        fields['address'] = {'key': 'address', 'label': 'Address', 'value': str(addr_val) if addr_val else '', 'confidence': 95 if addr_val else 0, 'editable': True}
+        
+    elif doc_type == 'visa':
+        visa_val = real_extracted.get('visa_number') or ''
+        name_val = real_extracted.get('name') or ''
+        vtype_val = real_extracted.get('visa_type') or ''
+        ent_val = real_extracted.get('entries') or ''
+        exp_val = real_extracted.get('expiry_date') or ''
+        
+        fields['visaNumber'] = {'key': 'visaNumber', 'label': 'Visa Number', 'value': str(visa_val) if visa_val else '', 'confidence': 98 if visa_val else 0, 'editable': True}
+        fields['name'] = {'key': 'name', 'label': 'Name', 'value': str(name_val) if name_val else '', 'confidence': 98 if name_val else 0, 'editable': True}
+        if vtype_val:
+            fields['visaType'] = {'key': 'visaType', 'label': 'Visa Type', 'value': str(vtype_val), 'confidence': 95, 'editable': True}
+        if ent_val:
+            fields['entries'] = {'key': 'entries', 'label': 'Entries', 'value': str(ent_val), 'confidence': 95, 'editable': True}
+        if exp_val:
+            fields['expiryDate'] = {'key': 'expiryDate', 'label': 'Expiry Date', 'value': str(exp_val), 'confidence': 95, 'editable': True}
+
+    # Add any extra extracted fields from the OCR pipeline
+    for k, v in real_extracted.items():
+        if k not in ['name', 'dob', 'gender', 'aadhaar_number', 'passport_number', 'dl_number', 'visa_number', 'address', 'validity', 'blood_group', 'father_name', 'vehicle_classes', 'nationality', 'expiry_date', 'visa_type', 'entries', 'aadhaar_number_valid', 'mrz_checksum_valid']:
+            if v and str(v).strip():
+                fields[k] = {
+                    'key': k,
+                    'label': k.replace('_', ' ').title(),
+                    'value': str(v),
+                    'confidence': 95,
+                    'editable': True
+                }
+        
+    return Response({
+        "fields": fields, 
+        "pic_path": pic_path, 
+        "qr_path": qr_path,
+        "raw_ocr_text": raw_ocr_text,
+        "engine": "DocumentPipeline (Tesseract OCR + Verification Engine)"
+    })
 
 
 @api_view(['POST'])
 def validate_document_view(request):
     doc_type = request.data.get('docType', 'aadhaar')
-    fields = request.data.get('fields', {})
+    fields_dict = request.data.get('fields', {})
     
-    is_valid = True
-    errors = []
-    
+    # Extract values for the original DocumentValidator
+    extracted_for_validator = {}
     if doc_type == 'aadhaar':
-        if not fields.get('maskedAadhaar', {}).get('value') or fields.get('maskedAadhaar', {}).get('value') == 'N/A':
-            is_valid = False
-            errors.append("Aadhaar Number missing")
-            
-        qr_data = fields.get('qr_data', {}).get('value', '')
-        if qr_data:
-            try:
-                import sys
-                import os
-                sys.path.append(os.path.join(settings.BASE_DIR, '..'))
-                from aadhar import parse_secure_qr_string, verify_aadhaar_signature, run_cross_verification
-                
-                payload, signature = parse_secure_qr_string(qr_data)
-                is_signature_valid = verify_aadhaar_signature(payload, signature)
-                if not is_signature_valid:
-                    is_valid = False
-                    errors.append("Aadhaar QR signature verification failed.")
-                
-                # Cross verify OCR extracted data against QR
-                ocr_data = {k: v.get('value') for k, v in fields.items() if k != 'qr_data' and v.get('value')}
-                cross_result = run_cross_verification(ocr_data, qr_data)
-                
-                if cross_result.get('tamper_detected'):
-                    is_valid = False
-                    errors.append(f"Tampering detected! Confidence: {cross_result.get('confidence_score')}%")
-            except Exception as e:
-                print("Cross-verification error:", e)
-                errors.append(f"Cross-verification failed: {str(e)}")
-        else:
-            errors.append("No secure QR code found for verification.")
-            is_valid = False
+        extracted_for_validator['aadhaar_number'] = fields_dict.get('maskedAadhaar', {}).get('value')
+        extracted_for_validator['name'] = fields_dict.get('name', {}).get('value')
+        extracted_for_validator['dob'] = fields_dict.get('dateOfBirth', {}).get('value')
+    elif doc_type == 'passport':
+        extracted_for_validator['passport_number'] = fields_dict.get('passportNumber', {}).get('value')
+        extracted_for_validator['name'] = fields_dict.get('name', {}).get('value')
+    elif doc_type in ('driving_license', 'dl'):
+        extracted_for_validator['dl_number'] = fields_dict.get('dlNumber', {}).get('value')
+        extracted_for_validator['name'] = fields_dict.get('name', {}).get('value')
+    elif doc_type == 'visa':
+        extracted_for_validator['visa_number'] = fields_dict.get('visaNumber', {}).get('value')
+
+    # Run original DocumentValidator from src.validators
+    val_status = DocumentValidator.validate_document(doc_type if doc_type != 'driving_license' else 'dl', extracted_for_validator)
     
+    errors = []
+    for field_name, status in val_status.items():
+        if field_name != 'overall' and status == 'fail':
+            errors.append(f"{field_name.replace('_', ' ').title()} validation failed")
+            
+    is_valid = val_status.get('overall') == 'pass'
+    
+    # Aadhaar checksum verification via Verhoeff
+    checksum_valid = True
+    if doc_type == 'aadhaar':
+        raw_uid = str(extracted_for_validator.get('aadhaar_number', '')).replace(' ', '')
+        if len(raw_uid) == 12 and raw_uid.isdigit():
+            checksum_valid = Verhoeff.validate(raw_uid)
+        elif 'X' in raw_uid.upper():
+            checksum_valid = True
+        else:
+            checksum_valid = False
+            
     return Response({
         "isValid": is_valid,
-        "mrzValid": True,
-        "checksumValid": is_valid,
+        "mrzValid": True if doc_type in ('passport', 'visa') else True,
+        "checksumValid": checksum_valid,
         "expiryValid": True,
         "errors": errors
     })
@@ -242,6 +380,9 @@ def detect_corners_view(request):
 @api_view(['POST'])
 def scan_pro_view(request):
     file_obj = request.FILES.get('file')
+    if not file_obj:
+        return HttpResponse(b"Error: No file uploaded", status=400, content_type="text/plain")
+
     corners_str = request.data.get('corners')
     filter_mode = request.data.get('filter_mode', 'balanced')
     
@@ -249,6 +390,9 @@ def scan_pro_view(request):
         contents = file_obj.read()
         nparr = np.frombuffer(contents, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if img is None or img.size == 0:
+            return HttpResponse(b"Error: Could not decode image", status=400, content_type="text/plain")
 
         if corners_str:
             pts_list = json.loads(corners_str)
@@ -266,6 +410,8 @@ def scan_pro_view(request):
             result = apply_premium_color_scan(warped)
         elif filter_mode == "text":
             result = apply_ultra_sharp_text(warped)
+        elif filter_mode == "original":
+            result = warped  # Just use the deskewed image without extra filtering
         else:
             result = apply_master_readable_pro(warped)
             
@@ -274,3 +420,50 @@ def scan_pro_view(request):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
+from .models import ScanHistory
+
+@api_view(['GET', 'POST'])
+def history_view(request):
+    if request.method == 'GET':
+        history_items = ScanHistory.objects.all()
+        data = []
+        for item in history_items:
+            data.append({
+                "id": str(item.id),
+                "documentType": item.document_type,
+                "fileName": item.file_name,
+                "holderName": item.holder_name,
+                "identifier": item.identifier,
+                "riskLevel": item.risk_level,
+                "riskScore": item.risk_score,
+                "timestamp": int(item.timestamp.timestamp() * 1000),
+                "timeAgo": "Just now", # Frontend can calculate this from timestamp
+                "imageThumbnail": item.image_thumbnail,
+                "backThumbnail": item.back_thumbnail,
+                "ekycVerified": item.ekyc_verified,
+                "result": item.result,
+                "extractedFields": item.extracted_fields,
+                "savedPaths": item.saved_paths
+            })
+        return Response(data)
+    
+    elif request.method == 'POST':
+        try:
+            data = request.data
+            new_item = ScanHistory.objects.create(
+                document_type=data.get('documentType', 'unknown'),
+                file_name=data.get('fileName', 'unknown'),
+                holder_name=data.get('holderName', ''),
+                identifier=data.get('identifier', ''),
+                risk_level=data.get('riskLevel', 'LOW'),
+                risk_score=data.get('riskScore', 0),
+                image_thumbnail=data.get('imageThumbnail', ''),
+                back_thumbnail=data.get('backThumbnail', ''),
+                ekyc_verified=data.get('ekycVerified', False),
+                result=data.get('result', {}),
+                extracted_fields=data.get('extractedFields', {}),
+                saved_paths=data.get('savedPaths', {})
+            )
+            return Response({"success": True, "id": str(new_item.id)})
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
