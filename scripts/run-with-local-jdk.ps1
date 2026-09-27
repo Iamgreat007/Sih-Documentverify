@@ -10,10 +10,16 @@ if (-Not (Test-Path $jdkDir)) {
     exit 1
 }
 
-# Find the extracted JDK folder (some archives include a nested folder name like jdk-17...)
-$jdkRoot = Get-ChildItem $jdkDir | Where-Object { $_.PSIsContainer } | Select-Object -First 1
-if ($null -eq $jdkRoot) {
-    $jdkRoot = Get-Item $jdkDir
+# Determine the actual JDK root
+$jdkRoot = Get-Item $jdkDir
+if (-Not (Test-Path (Join-Path $jdkRoot.FullName "bin\java.exe"))) {
+    $nested = Get-ChildItem $jdkDir | Where-Object { $_.PSIsContainer -and (Test-Path (Join-Path $_.FullName "bin\java.exe")) } | Select-Object -First 1
+    if ($null -ne $nested) {
+        $jdkRoot = $nested
+    } else {
+        Write-Error "Could not find bin\java.exe in local JDK directory."
+        exit 1
+    }
 }
 
 $absJdkPath = $jdkRoot.FullName

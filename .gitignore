@@ -20,6 +20,8 @@ tesseract_setup.exe
 frontend/.next/
 frontend/out/
 frontend/build/
+pehchaansaathi/.next/
+pehchaansaathi/node_modules/
 .vercel/
 
 # Environment Variables & Secrets
@@ -47,3 +49,4 @@ django_backend/api/migrations/__pycache__/
 
 # Java Spring Boot
 facerecognition/target/
+jdk/

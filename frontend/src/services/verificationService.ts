@@ -184,7 +184,8 @@ export async function ocr(
   isSuspicious: boolean = false,
   enginePref: string = 'auto'
 ): Promise<Record<string, ExtractedField>> {
-  // 1. Try Backend OCR Engine endpoint with real image payload
+  // 1. Try FastAPI Backend endpoint first if accessible
+  let backendFields: Record<string, ExtractedField> = {};
   try {
     const formData = new FormData();
 
@@ -226,9 +227,8 @@ export async function ocr(
         'X-Pinggy-No-Screen': '1'
       },
     });
-    if (response.data && response.data.fields && Object.keys(response.data.fields).length > 0) {
-      console.log('Backend real OCR extraction response:', response.data);
-      return response.data.fields;
+    if (response.data && response.data.fields) {
+      backendFields = response.data.fields;
     }
   } catch (err: any) {
     console.warn('Backend OCR call error, falling back:', err.message);
@@ -247,197 +247,8 @@ export async function ocr(
     }
   }
 
-  // Realistic mock extraction by document type
-  let baseFields: Record<string, ExtractedField> = {};
-
-  if (docType === 'passport') {
-    baseFields = {
-      passportNumber: {
-        key: 'passportNumber',
-        label: 'Passport Number',
-        value: 'A1234567',
-        confidence: 99,
-        editable: true,
-      },
-      name: {
-        key: 'name',
-        label: 'Name',
-        value: 'Rahul Sharma',
-        confidence: 99,
-        editable: true,
-      },
-      dateOfBirth: {
-        key: 'dateOfBirth',
-        label: 'DOB',
-        value: '14/03/2003',
-        confidence: 97,
-        editable: true,
-      },
-      dateOfIssue: {
-        key: 'dateOfIssue',
-        label: 'Date of Issue',
-        value: '23/08/2022',
-        confidence: 96,
-        editable: true,
-      },
-      dateOfExpiry: {
-        key: 'dateOfExpiry',
-        label: 'Date of Expiry',
-        value: '22/08/2032',
-        confidence: 98,
-        editable: true,
-      },
-      placeOfIssue: {
-        key: 'placeOfIssue',
-        label: 'Place of Issue',
-        value: 'Delhi',
-        confidence: 98,
-        editable: true,
-      },
-      address: {
-        key: 'address',
-        label: 'Address',
-        value: 'Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
-        confidence: 95,
-        editable: true,
-      },
-      mrzCode: {
-        key: 'mrzCode',
-        label: 'MRZZ Code',
-        value: 'P<INDSHARMA<<RAHUL<<<<<<<<<<<<<<<<<<<<<<<<<<\\nA1234567<8IND0303140M3208229<<<<<<<<<<<<<<<2',
-        confidence: 99,
-        editable: true,
-      },
-    };
-  } else if (docType === 'driving_license') {
-    baseFields = {
-      licenseNumber: {
-        key: 'licenseNumber',
-        label: 'License Number',
-        value: 'DL-0420110012345',
-        confidence: 99,
-        editable: true,
-      },
-      name: {
-        key: 'name',
-        label: 'Name',
-        value: 'Rahul Sharma',
-        confidence: 99,
-        editable: true,
-      },
-      dateOfIssue: {
-        key: 'dateOfIssue',
-        label: 'Date of Issue',
-        value: '14/03/2023',
-        confidence: 98,
-        editable: true,
-      },
-      dateOfExpiry: {
-        key: 'dateOfExpiry',
-        label: 'Date of Expiry',
-        value: '13/03/2043',
-        confidence: 98,
-        editable: true,
-      },
-      placeOfIssue: {
-        key: 'placeOfIssue',
-        label: 'Place of Issue',
-        value: 'Delhi RTO',
-        confidence: 95,
-        editable: true,
-      },
-      address: {
-        key: 'address',
-        label: 'Address',
-        value: 'H.No 42, Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
-        confidence: 97,
-        editable: true,
-      },
-    };
-  } else if (docType === 'visa') {
-    baseFields = {
-      visaNumber: {
-        key: 'visaNumber',
-        label: 'Visa Number',
-        value: 'V98765432',
-        confidence: 99,
-        editable: true,
-      },
-      visaType: {
-        key: 'visaType',
-        label: 'Visa Type',
-        value: 'Tourist / Business (B1/B2)',
-        confidence: 97,
-        editable: true,
-      },
-      expiryDate: {
-        key: 'expiryDate',
-        label: 'Expiry Date',
-        value: '15/12/2028',
-        confidence: 96,
-        editable: true,
-      },
-      passportNumber: {
-        key: 'passportNumber',
-        label: 'Passport Number',
-        value: 'A1234567',
-        confidence: 98,
-        editable: true,
-      },
-    };
-  } else if (isSuspicious) {
-    baseFields = {
-      name: {
-        key: 'name',
-        label: 'Name',
-        value: 'Rahul Sharma',
-        confidence: 94,
-        editable: true,
-      },
-      aadharNo: {
-        key: 'aadharNo',
-        label: 'Aadhaar No',
-        value: 'XXXX XXXX 7821',
-        confidence: 92,
-        editable: true,
-      },
-      address: {
-        key: 'address',
-        label: 'Address',
-        value: 'Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
-        confidence: 88,
-        editable: true,
-      },
-    };
-  } else {
-    // docType === 'aadhaar'
-    baseFields = {
-      name: {
-        key: 'name',
-        label: 'Name',
-        value: 'Rahul Sharma',
-        confidence: 99,
-        editable: true,
-      },
-      aadharNo: {
-        key: 'aadharNo',
-        label: 'Aadhaar No',
-        value: 'XXXX XXXX 7821',
-        confidence: 99,
-        editable: true,
-      },
-      address: {
-        key: 'address',
-        label: 'Address',
-        value: 'House No. 42, Pocket B, Mayur Vihar Phase 1, New Delhi - 110091',
-        confidence: 98,
-        editable: true,
-      },
-    };
-  }
-
-  // Merge real recognized client OCR fields on top of base fields
-  return { ...baseFields, ...clientOcrFields };
+  // Merge client OCR fields on top of backend fields (QR data, etc)
+  return { ...backendFields, ...clientOcrFields };
 }
 
 /**

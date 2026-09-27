@@ -301,12 +301,22 @@ def verify_face_view(request):
     # Try calling the Java Spring Boot Face Recognition API
     java_api_url = "http://localhost:8080/api/face-match"
     
+    # Save the selfie to the image folder
+    selfie_path = ""
+    if file_obj:
+        output_dir = os.path.join(settings.BASE_DIR, '..', 'image')
+        os.makedirs(output_dir, exist_ok=True)
+        selfie_path = os.path.join(output_dir, "selfie_pic.jpg")
+        with open(selfie_path, 'wb') as f:
+            f.write(file_obj.read())
+
+    # We assume the document picture is already saved as 'aadhaar_pic.jpg' or similar during OCR
+    doc_pic_path = os.path.join(settings.BASE_DIR, '..', 'image', 'aadhaar_pic.jpg')
+    
     try:
-        # In a real app, we would send the image file or paths.
-        # Here we just pass mock paths
         payload = {
-            "image1": "mock_pic1.jpg",
-            "image2": "mock_pic2.jpg"
+            "image1": doc_pic_path,
+            "image2": selfie_path
         }
         res = requests.post(java_api_url, json=payload, timeout=2)
         if res.status_code == 200:

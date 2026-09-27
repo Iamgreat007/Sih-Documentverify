@@ -225,14 +225,19 @@ export default function SecureScanApp() {
         id: `scan-${Date.now()}`,
         documentType: detectedType,
         fileName,
-        holderName: extractedFields.name?.value || 'Rahul Sharma',
+        holderName: extractedFields.name?.value || 'Unknown Name',
         identifier:
           extractedFields.passportNumber?.value ||
           extractedFields.maskedAadhaar?.value ||
           extractedFields.dlNumber?.value ||
           extractedFields.visaNumber?.value ||
-          'ID-DOC-01',
-        riskLevel: finalResult.riskLevel,
+          'Unknown ID',
+        riskLevel:
+          finalResult.riskLevel === 'LOW RISK'
+            ? 'LOW'
+            : finalResult.riskLevel === 'HIGH RISK'
+            ? 'HIGH'
+            : 'MEDIUM',
         riskScore: finalResult.riskScore,
         timeAgo: 'Just now',
         timestamp: Date.now(),
